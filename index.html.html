@@ -1,0 +1,3056 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>《自相矛盾》KS2 中文互動練習平台</title>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入繁體中文清晰圓潤字體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', '"Microsoft JhengHei"', '"PingFang HK"', 'sans-serif'],
+          },
+          colors: {
+            cream: '#FFFDF7',
+            warmYellow: '#FEF3C7',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang HK", sans-serif;
+      background-color: #FFFDF7;
+      background-image: radial-gradient(#FDE68A 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* 觸控友善立體按鈕效果 */
+    .btn-tactile {
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease;
+    }
+    .btn-tactile:active:not(:disabled) {
+      transform: translateY(3px);
+    }
+    /* 語音朗讀動畫 */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    .speaking-active {
+      animation: pulse-ring 1.2s infinite;
+      background-color: #2563EB !important;
+      color: #FFFFFF !important;
+    }
+    /* 自訂捲軸 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FEF3C7;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #F59E0B;
+      border-radius: 999px;
+    }
+    /* 密碼錯誤震動提示動畫 */
+    @keyframes shake-box {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .animate-shake {
+      animation: shake-box 0.36s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+  <!-- 頂部導覽列 -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b-2 border-amber-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+      <!-- 標題與返回首頁 -->
+      <button onclick="goHome()" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <!-- 矛與盾小圖示 SVG -->
+          <svg class="w-7 h-7" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 4C11 7 7 8 7 8V18C7 25.5 18 32 18 32C18 32 29 25.5 29 18V8C29 8 25 7 18 4Z" fill="#FDE68A" stroke="#78350F" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M8 28L28 8M28 8H22M28 8V14" stroke="#DC2626" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <span class="inline-block text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">KS2 中文科單元</span>
+          <h1 class="text-lg sm:text-xl font-black text-slate-800 tracking-tight leading-tight">《自相矛盾》互動練習</h1>
+        </div>
+      </button>
+
+      <!-- 右側功能按鈕列 -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 雲端同步狀態提示 -->
+        <span id="dbStatusBadge" class="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="dbStatusText">成績自動記錄中</span>
+        </span>
+
+        <!-- 課文及溫習筆記按鈕 -->
+        <button onclick="openStudyModal('text')" class="btn-tactile flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm sm:text-base shadow-sm border-b-4 border-sky-700">
+          <span>📖</span>
+          <span>課文及溫習筆記</span>
+        </button>
+
+        <!-- 老師成績紀錄按鈕（需密碼 534534 驗證） -->
+        <button onclick="requestTeacherAccess()" class="btn-tactile flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm sm:text-base shadow-sm border-b-4 border-indigo-800">
+          <span>🔒</span>
+          <span>老師成績紀錄</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容容器 -->
+  <main id="appContainer" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-8">
+    <!-- 動態視圖將由 JavaScript 渲染於此 -->
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="bg-white/80 border-t border-amber-200 py-4 text-center text-xs sm:text-sm text-slate-500">
+    <p>小學第二學習階段（KS2）中文科互動學習平台 • 課題：《自相矛盾》</p>
+  </footer>
+
+  <!-- ==================== 彈出視窗 1：課文及溫習筆記 ==================== -->
+  <div id="studyModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-sky-200 flex flex-col overflow-hidden">
+      <!-- 彈窗標題列 -->
+      <div class="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📖</span>
+          <h2 class="text-xl sm:text-2xl font-black">《自相矛盾》課文與重點溫習角</h2>
+        </div>
+        <button onclick="closeStudyModal()" class="w-10 h-10 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white font-black text-xl transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- 分頁切換標籤 -->
+      <div class="bg-sky-50 px-3 sm:px-5 pt-3 border-b border-sky-200 flex flex-wrap gap-2">
+        <button onclick="switchStudyTab('text')" id="tabBtn-text" class="study-tab-btn px-4 py-2.5 rounded-t-2xl font-bold text-sm sm:text-base transition">
+          📜 課文原文
+        </button>
+        <button onclick="switchStudyTab('vocab')" id="tabBtn-vocab" class="study-tab-btn px-4 py-2.5 rounded-t-2xl font-bold text-sm sm:text-base transition">
+          📝 重點詞語與部首 (8個)
+        </button>
+        <button onclick="switchStudyTab('grammar')" id="tabBtn-grammar" class="study-tab-btn px-4 py-2.5 rounded-t-2xl font-bold text-sm sm:text-base transition">
+          🔤 語文知識
+        </button>
+        <button onclick="switchStudyTab('weather')" id="tabBtn-weather" class="study-tab-btn px-4 py-2.5 rounded-t-2xl font-bold text-sm sm:text-base transition">
+          🌤️ 天氣預報資料
+        </button>
+      </div>
+
+      <!-- 分頁內容區 -->
+      <div id="studyModalBody" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 bg-white">
+        <!-- 動態填入分頁內容 -->
+      </div>
+
+      <!-- 底部關閉列 -->
+      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end">
+        <button onclick="closeStudyModal()" class="btn-tactile px-6 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold border-b-4 border-sky-700">
+          我知道了，返回練習 👍
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 2：自訂確認與訊息視窗（取代 alert / confirm） ==================== -->
+  <div id="customDialogModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border-4 border-amber-300 p-6 text-center space-y-4">
+      <div id="dialogIcon" class="text-5xl mx-auto">⚠️</div>
+      <h3 id="dialogTitle" class="text-xl font-black text-slate-800">確認操作</h3>
+      <p id="dialogMessage" class="text-slate-600 text-base leading-relaxed">確定要執行此操作嗎？</p>
+      <div id="dialogButtons" class="flex justify-center gap-3 pt-2">
+        <!-- 動態按鈕 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 3：老師查看單次作答詳情 ==================== -->
+  <div id="attemptDetailModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-indigo-200 flex flex-col overflow-hidden">
+      <div class="bg-indigo-600 px-5 py-4 flex items-center justify-between text-white">
+        <h3 id="attemptDetailTitle" class="text-lg sm:text-xl font-black">作答紀錄與錯題詳情</h3>
+        <button onclick="closeAttemptDetailModal()" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div id="attemptDetailBody" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+        <!-- 動態內容 -->
+      </div>
+      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end">
+        <button onclick="closeAttemptDetailModal()" class="btn-tactile px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 4：老師成績紀錄密碼驗證視窗（密碼：534534） ==================== -->
+  <div id="teacherPasswordModal" class="fixed inset-0 z-50 hidden bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div id="teacherPasswordCard" class="bg-white w-full max-w-sm rounded-3xl shadow-2xl border-4 border-indigo-200 p-5 sm:p-6 space-y-4">
+      <div class="text-center space-y-1">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-3xl shadow-2xs">
+          🔒
+        </div>
+        <h3 class="text-xl font-black text-slate-800">老師專區身份驗證</h3>
+        <p class="text-xs sm:text-sm text-slate-500 font-medium">請輸入老師管理密碼以查閱學生成績紀錄</p>
+      </div>
+
+      <!-- 密碼輸入框與顯示切換 -->
+      <div class="relative">
+        <input
+          id="teacherPasswordInput"
+          type="password"
+          inputmode="numeric"
+          maxlength="10"
+          placeholder="請輸入老師密碼"
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); verifyTeacherPassword(); }"
+          oninput="document.getElementById('teacherPasswordError').classList.add('hidden')"
+          class="w-full px-4 py-3 pr-12 text-center text-2xl font-black tracking-widest rounded-2xl border-2 border-slate-300 bg-slate-50 text-slate-800 focus:border-indigo-500 focus:bg-white focus:outline-none"
+        />
+        <button
+          type="button"
+          onclick="toggleTeacherPwdVisibility()"
+          title="顯示或隱藏密碼"
+          class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl hover:bg-slate-200 text-slate-500 flex items-center justify-center text-lg"
+        >
+          👁️
+        </button>
+      </div>
+
+      <!-- 密碼錯誤紅色提示 -->
+      <div id="teacherPasswordError" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-700 text-sm font-black text-center">
+        ❌ 密碼錯誤，請重新輸入
+      </div>
+
+      <!-- iPad 觸控友善螢幕數字鍵盤 -->
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <button type="button" onclick="appendTeacherDigit('1')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">1</button>
+        <button type="button" onclick="appendTeacherDigit('2')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">2</button>
+        <button type="button" onclick="appendTeacherDigit('3')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">3</button>
+        <button type="button" onclick="appendTeacherDigit('4')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">4</button>
+        <button type="button" onclick="appendTeacherDigit('5')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">5</button>
+        <button type="button" onclick="appendTeacherDigit('6')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">6</button>
+        <button type="button" onclick="appendTeacherDigit('7')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">7</button>
+        <button type="button" onclick="appendTeacherDigit('8')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">8</button>
+        <button type="button" onclick="appendTeacherDigit('9')" class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300">9</button>
+        <button
+          type="button"
+          onclick="clearTeacherDigit()"
+          class="btn-tactile py-2.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-sm border-b-2 border-amber-300"
+        >
+          清除
+        </button>
+        <button
+          type="button"
+          onclick="appendTeacherDigit('0')"
+          class="btn-tactile py-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 active:bg-indigo-100 text-slate-800 font-black text-xl border-b-2 border-slate-300"
+        >
+          0
+        </button>
+        <button
+          type="button"
+          onclick="backspaceTeacherDigit()"
+          class="btn-tactile py-2.5 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-base border-b-2 border-slate-400"
+        >
+          ⌫
+        </button>
+      </div>
+
+      <!-- 底部確認與取消按鈕 -->
+      <div class="grid grid-cols-2 gap-2.5 pt-2">
+        <button
+          type="button"
+          onclick="closeTeacherPasswordModal()"
+          class="btn-tactile py-3 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold border-b-4 border-slate-400"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          onclick="verifyTeacherPassword()"
+          class="btn-tactile py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black border-b-4 border-indigo-900"
+        >
+          🔓 確認進入
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 5：免登入即時「詞語部首智能分析」視窗 ==================== -->
+  <div id="localRadicalModal" class="fixed inset-0 z-50 hidden bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl border-4 border-cyan-300 flex flex-col overflow-hidden">
+      <div class="bg-gradient-to-r from-cyan-600 to-indigo-600 px-5 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🤖</span>
+          <div>
+            <span class="inline-block text-[11px] font-black px-2 py-0.5 rounded-full bg-white/20">免登入 Gmail • 即時部首解析</span>
+            <h3 id="localRadicalModalTitle" class="text-lg sm:text-xl font-black leading-tight">詞語部首分析</h3>
+          </div>
+        </div>
+        <button onclick="closeLocalRadicalModal()" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-lg">✕</button>
+      </div>
+
+      <div id="localRadicalModalBody" class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50/60">
+        <!-- 動態填入逐字部首與筆畫分析 -->
+      </div>
+
+      <div class="bg-white px-4 sm:px-5 py-3 border-t border-slate-200 flex items-center justify-between gap-2">
+        <span class="text-xs font-bold text-emerald-700">✅ 100% 內置智能解析 • 無需登入任何帳號</span>
+        <button onclick="closeLocalRadicalModal()" class="btn-tactile px-5 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-black text-sm border-b-4 border-cyan-800">
+          明白了，返回題目 👍
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 浮動 Toast 提示 -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-300 translate-y-4 opacity-0">
+    <div class="bg-slate-800 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 font-bold text-sm sm:text-base border border-slate-700">
+      <span id="toastIcon">✅</span>
+      <span id="toastText">已儲存分數！</span>
+    </div>
+  </div>
+
+  <!-- Firebase 模組載入與資料庫整合 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const LOCAL_STORAGE_KEY = 'ks2_zixiangmaodun_records_v1';
+
+    function loadLocalRecords() {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function persistLocalRecords(records) {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        console.warn('localStorage write skipped:', e);
+      }
+    }
+
+    // 全域成績儲存管理（優先支援 localStorage 永久儲存，並於可用時同步雲端）
+    window.cloudStore = {
+      db: null,
+      auth: null,
+      user: null,
+      appId: typeof __app_id !== 'undefined' ? __app_id : 'ks2-zixiangmaodun-app',
+      isReady: false,
+      records: loadLocalRecords() // 啟動時立即載入本機已儲存的歷次成績
+    };
+
+    async function initCloudDatabase() {
+      try {
+        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+          updateDbStatus('本機裝置自動記分中', 'emerald');
+          return;
+        }
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.cloudStore.auth = auth;
+        window.cloudStore.db = db;
+
+        // 遵循規則 3：先完成身份驗證，再進行資料庫讀取與寫入
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        window.cloudStore.user = auth.currentUser;
+        window.cloudStore.isReady = true;
+        updateDbStatus('雲端成績庫已連線', 'emerald');
+
+        // 遵循規則 1 & 2：使用嚴格公開路徑 /artifacts/{appId}/public/data/quiz_records，且不使用複合查詢
+        const recordsCol = collection(db, 'artifacts', window.cloudStore.appId, 'public', 'data', 'quiz_records');
+        onSnapshot(
+          recordsCol,
+          (snapshot) => {
+            const loaded = [];
+            snapshot.forEach((docSnap) => {
+              loaded.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            // 在記憶體中依時間新至舊排序
+            loaded.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            window.cloudStore.records = loaded;
+            persistLocalRecords(loaded);
+            // 若目前在首頁、個人主頁或老師頁面，即時更新畫面
+            if (typeof window.refreshCurrentView === 'function') {
+              window.refreshCurrentView();
+            }
+          },
+          (error) => {
+            console.error('Firestore onSnapshot error:', error);
+            updateDbStatus('本機裝置自動記分中', 'emerald');
+          }
+        );
+      } catch (err) {
+        console.error('Firebase init error:', err);
+        updateDbStatus('本機裝置自動記分中', 'emerald');
+      }
+    }
+
+    function updateDbStatus(text, color) {
+      const badge = document.getElementById('dbStatusBadge');
+      const label = document.getElementById('dbStatusText');
+      if (!badge || !label) return;
+      label.textContent = text;
+      if (color === 'amber') {
+        badge.className = 'hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200';
+      }
+    }
+
+    // 儲存成績函式（供主程式呼叫）
+    window.saveQuizRecordToCloud = async function(recordObj) {
+      // 立即寫入記憶體陣列與 localStorage，確保任何裝置離線或重整頁面皆保留分數
+      const tempId = 'mem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      const localCopy = { id: tempId, ...recordObj };
+      window.cloudStore.records.unshift(localCopy);
+      persistLocalRecords(window.cloudStore.records);
+
+      if (window.cloudStore.isReady && window.cloudStore.db && window.cloudStore.user) {
+        try {
+          const recordsCol = collection(window.cloudStore.db, 'artifacts', window.cloudStore.appId, 'public', 'data', 'quiz_records');
+          const docRef = await addDoc(recordsCol, recordObj);
+          // 更新暫存 ID 為真實 Firestore ID
+          const idx = window.cloudStore.records.findIndex(r => r.id === tempId);
+          if (idx !== -1) {
+            window.cloudStore.records[idx].id = docRef.id;
+            persistLocalRecords(window.cloudStore.records);
+          }
+        } catch (err) {
+          console.error('Failed to save record to Firestore:', err);
+        }
+      }
+    };
+
+    // 清除成績紀錄函式（供老師總覽呼叫）
+    window.clearQuizRecordsInCloud = async function(studentFilter = 'ALL') {
+      const targetRecords = studentFilter === 'ALL'
+        ? [...window.cloudStore.records]
+        : window.cloudStore.records.filter(r => r.studentName === studentFilter);
+
+      // 從記憶體與 localStorage 移除
+      if (studentFilter === 'ALL') {
+        window.cloudStore.records = [];
+      } else {
+        window.cloudStore.records = window.cloudStore.records.filter(r => r.studentName !== studentFilter);
+      }
+      persistLocalRecords(window.cloudStore.records);
+
+      if (window.cloudStore.isReady && window.cloudStore.db && window.cloudStore.user) {
+        try {
+          for (const rec of targetRecords) {
+            if (rec.id && !rec.id.startsWith('mem_')) {
+              const docRef = doc(window.cloudStore.db, 'artifacts', window.cloudStore.appId, 'public', 'data', 'quiz_records', rec.id);
+              await deleteDoc(docRef);
+            }
+          }
+        } catch (err) {
+          console.error('Error deleting records from Firestore:', err);
+        }
+      }
+    };
+
+    initCloudDatabase();
+  </script>
+
+  <!-- 應用程式核心資料與互動邏輯 -->
+  <script>
+    // ==================== 1. 學生名單（14 位，含「測試」） ====================
+    const STUDENTS = [
+      { id: 1, name: '邵顯揚', avatar: '🦁', bg: 'from-amber-100 to-orange-100', border: 'border-amber-300', badge: 'bg-amber-500' },
+      { id: 2, name: '周梓軒', avatar: '🐯', bg: 'from-sky-100 to-blue-100', border: 'border-sky-300', badge: 'bg-sky-500' },
+      { id: 3, name: '鍾逸晴', avatar: '🐰', bg: 'from-pink-100 to-rose-100', border: 'border-pink-300', badge: 'bg-pink-500' },
+      { id: 4, name: '陳塱弦', avatar: '🦊', bg: 'from-orange-100 to-red-100', border: 'border-orange-300', badge: 'bg-orange-500' },
+      { id: 5, name: '鍾鎧揚', avatar: '🐼', bg: 'from-emerald-100 to-teal-100', border: 'border-emerald-300', badge: 'bg-emerald-500' },
+      { id: 6, name: '陳瑋楠', avatar: '🐨', bg: 'from-indigo-100 to-purple-100', border: 'border-indigo-300', badge: 'bg-indigo-500' },
+      { id: 7, name: '林俊希', avatar: '🐶', bg: 'from-cyan-100 to-sky-100', border: 'border-cyan-300', badge: 'bg-cyan-600' },
+      { id: 8, name: '林煒喬', avatar: '🐱', bg: 'from-violet-100 to-fuchsia-100', border: 'border-violet-300', badge: 'bg-violet-500' },
+      { id: 9, name: '吳泊儒', avatar: '🐻', bg: 'from-yellow-100 to-amber-100', border: 'border-yellow-300', badge: 'bg-yellow-500' },
+      { id: 10, name: '阮子存', avatar: '🐸', bg: 'from-lime-100 to-green-100', border: 'border-lime-300', badge: 'bg-lime-600' },
+      { id: 11, name: '陳悅晴', avatar: '🦄', bg: 'from-fuchsia-100 to-pink-100', border: 'border-fuchsia-300', badge: 'bg-fuchsia-500' },
+      { id: 12, name: '何瑾萱', avatar: '🐥', bg: 'from-rose-100 to-orange-100', border: 'border-rose-300', badge: 'bg-rose-500' },
+      { id: 13, name: '陳巧鋒', avatar: '🐲', bg: 'from-teal-100 to-emerald-100', border: 'border-teal-300', badge: 'bg-teal-600' },
+      { id: 14, name: '測試', avatar: '🧪', bg: 'from-slate-100 to-indigo-100', border: 'border-indigo-300', badge: 'bg-indigo-600', isTest: true }
+    ];
+
+    // ==================== 2. 教材溫習資料 ====================
+    const STUDY_DATA = {
+      storyParagraphs: [
+        '從前，有個小販在集市上<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">擺賣</span>兵器。他大喊：「來啊來啊，快來啊！快來看我的矛和盾！就是不買也來看一看，千萬別錯過了機會，它們都是最好的兵器啊！」',
+        '有一個人拿起一枝矛左看右看，然後問：「這矛究竟好在哪裏？」小販<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">大言不慚</span>地說：「這是世界上最<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">鋒利</span>的矛，任何<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">堅固</span>的盾都擋不住它！」',
+        '這時，另外有一個人拿起一面盾看著說：「這塊盾牌看上去好像挺好的。」小販<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">得意忘形</span>，說：「那當然！我賣的盾可是堅固無比的，即使世界上最鋒利的矛也不能<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">刺</span>穿它！」',
+        '這時，人羣中有一位長者走上前來問：「如果用你這把世上最鋒利的矛，去刺你這塊世上最堅固的盾，那會怎麼樣呢？」<span class="font-bold text-blue-700 underline decoration-amber-400 decoration-2">圍觀</span>的人都一起追問：「對對對！結果會怎樣呢？」小販頓時張着嘴巴，說不出話來：「這個，這個，這個嘛……喲，天不早了，我該走了……」說完，收拾東西慌忙離去。'
+      ],
+      vocabList: [
+        { word: '擺賣', vocabKey: '擺賣', radicals: '擺（扌／手部）、賣（貝部）', meaning: '多指叫賣貨品，想招攬顧客。', example: '這一條街道有許多小販擺賣貨物。', icon: '🏪' },
+        { word: '自相矛盾', vocabKey: '自相矛盾', radicals: '自（自部）、相（目部）、矛（矛部）、盾（目部）', meaning: '比喻做事或說話先後不相應、互相抵觸。', example: '班長請我們說話要小聲一點，她自己卻大聲說話，簡直是自相矛盾。', icon: '⚔️' },
+        { word: '鋒利', vocabKey: '鋒利', radicals: '鋒（金部）、利（刂／刀部）', meaning: '形容頭尖或刃薄的工具、武器容易切入或刺入物體。', example: '我的手被鋒利的玻璃碎割傷了。', icon: '🗡️' },
+        { word: '大言不慚', vocabKey: '大言不慚', radicals: '大（大部）、言（言部）、不（一部）、慚（忄／心部）', meaning: '說話時，不顧事實地誇大，卻一點也不會感到難為情。', example: '他明明做錯了，仍然大言不慚地說自己沒有錯。', icon: '🗣️' },
+        { word: '得意忘形', vocabKey: '得意忘形', radicals: '得（彳部）、意（心部）、忘（心部）、形（彡部）', meaning: '因過度高興，以致言行失去常態的樣子。', example: '我們獲得稱讚時切勿得意忘形，要謙虛一點。', icon: '😆' },
+        { word: '堅固', vocabKey: '堅固', radicals: '堅（土部）、固（囗部）', meaning: '結實牢固，不容易損毀。', example: '三弟用磚石建造的房子比兩個哥哥的堅固多了。', icon: '🏰' },
+        { word: '圍觀', vocabKey: '圍觀', radicals: '圍（囗部）、觀（見部）', meaning: '人們圍着觀看。', example: '學校門外發生車禍，老師不許我們走近圍觀。', icon: '👀' },
+        { word: '刺穿', vocabKey: '刺穿', radicals: '刺（刂／刀部）、穿（穴部）', meaning: '尖的東西穿過物體。', example: '哥哥被蜜蜂刺傷手臂。', icon: '🐝' }
+      ],
+      weatherSummary: '廣東明日風勢微弱，高溫觸發的驟雨及雷暴會影響該區。一股微弱的東北季候風會在接近週末抵達中國東南沿岸，該區雲量增多及有幾陣驟雨，受高空反氣旋影響，下週初廣東沿岸天色稍為好轉。此外，一道廣闊低壓槽會在下週初至中期為南海中部至菲律賓一帶帶來不穩定天氣。',
+      weatherDays: [
+        { date: '9月23日', day: '(六)', temp: '26 | 31 °C', humidity: '70-95%', rainProb: '中低', wind: '東風4級，離岸間中5級。', desc: '大致多雲，有幾陣驟雨。日間短暫時間有陽光。', icon: '🌦️' },
+        { date: '9月24日', day: '(日)', temp: '26 | 31 °C', humidity: '65-90%', rainProb: '低', wind: '東至東北風4級，離岸間中5級。', desc: '部分時間有陽光，有一兩陣驟雨。', icon: '⛅' },
+        { date: '9月25日', day: '(一)', temp: '26 | 31 °C', humidity: '65-90%', rainProb: '低', wind: '東至東北風4級。', desc: '部分時間有陽光，有一兩陣驟雨。', icon: '⛅' },
+        { date: '9月26日', day: '(二)', temp: '26 | 30 °C', humidity: '75-95%', rainProb: '中低', wind: '東至東北風4級。', desc: '短暫時間有陽光，有幾陣驟雨。', icon: '🌦️' }
+      ]
+    };
+
+    // ==================== 2.5 課文 8 個重點詞語卡通插畫（SVG 圖像輔助理解） ====================
+    const VOCAB_ILLUSTRATIONS = {
+      '擺賣': {
+        caption: '小販在地上擺放貨品，大聲叫賣招攬顧客',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#FEF9C3"/>
+          <ellipse cx="110" cy="134" rx="95" ry="10" fill="#FDE047" opacity="0.6"/>
+          <!-- 貨品地墊 -->
+          <polygon points="108,82 198,82 208,132 98,132" fill="#D97706" stroke="#78350F" stroke-width="2.5"/>
+          <polygon points="113,87 193,87 201,127 105,127" fill="#FDE68A"/>
+          <!-- 擺賣的鞋子貨品 -->
+          <g stroke="#1E293B" stroke-width="1.8">
+            <rect x="122" y="92" width="24" height="10" rx="5" fill="#3B82F6"/>
+            <rect x="158" y="92" width="24" height="10" rx="5" fill="#10B981"/>
+            <rect x="118" y="110" width="24" height="10" rx="5" fill="#EC4899"/>
+            <rect x="156" y="110" width="24" height="10" rx="5" fill="#8B5CF6"/>
+          </g>
+          <!-- 坐凳與小販 -->
+          <rect x="34" y="102" width="32" height="28" rx="4" fill="#CBD5E1" stroke="#334155" stroke-width="2"/>
+          <path d="M36 70 C36 58, 66 58, 66 70 L70 104 L32 104 Z" fill="#F43F5E" stroke="#881337" stroke-width="2.2"/>
+          <path d="M40 64 L62 64 L64 88 L38 88 Z" fill="#F59E0B" stroke="#78350F" stroke-width="1.8"/>
+          <!-- 小販頭部與叫賣手勢 -->
+          <circle cx="54" cy="44" r="16" fill="#FDBA74" stroke="#7C2D12" stroke-width="2.2"/>
+          <circle cx="42" cy="32" r="7" fill="#1E293B"/>
+          <circle cx="60" cy="42" r="2.2" fill="#1E293B"/>
+          <ellipse cx="64" cy="50" rx="4" ry="3" fill="#DC2626"/>
+          <path d="M58 68 Q74 62 72 51" fill="none" stroke="#FDBA74" stroke-width="6" stroke-linecap="round"/>
+          <!-- 叫賣聲波線 -->
+          <line x1="78" y1="36" x2="96" y2="26" stroke="#0284C7" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="82" y1="45" x2="103" y2="43" stroke="#0284C7" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="79" y1="54" x2="97" y2="61" stroke="#0284C7" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      '自相矛盾': {
+        caption: '用最鋒利的矛刺最堅固的盾，說話前後互相抵觸',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#EFF6FF"/>
+          <!-- 思考雲朵（矛刺盾） -->
+          <rect x="44" y="10" width="132" height="66" rx="22" fill="#FFFFFF" stroke="#64748B" stroke-width="2.5"/>
+          <circle cx="72" cy="84" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2"/>
+          <circle cx="148" cy="84" r="5" fill="#FFFFFF" stroke="#64748B" stroke-width="2"/>
+          <!-- 雲朵內的盾牌 -->
+          <path d="M68 24 L94 20 L94 56 L68 62 Z" fill="#F59E0B" stroke="#78350F" stroke-width="2.2" stroke-linejoin="round"/>
+          <!-- 雲朵內的長矛刺向盾 -->
+          <line x1="158" y1="34" x2="102" y2="41" stroke="#92400E" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="94,42 108,35 106,47" fill="#DC2626" stroke="#7F1D1D" stroke-width="1.5"/>
+          <!-- 撞擊火花 -->
+          <path d="M96 28 L101 34 M96 52 L102 47" stroke="#EF4444" stroke-width="2.2" stroke-linecap="round"/>
+          <!-- 兩位古人疑惑表情 -->
+          <circle cx="58" cy="112" r="15" fill="#FDBA74" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M45 103 Q58 94 71 103" fill="#334155"/>
+          <circle cx="54" cy="111" r="2" fill="#1E293B"/>
+          <circle cx="63" cy="111" r="2" fill="#1E293B"/>
+          <path d="M54 120 Q58 117 63 120" fill="none" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M38 148 C38 128, 78 128, 78 148 Z" fill="#64748B"/>
+          <text x="24" y="102" font-size="16" font-weight="900" fill="#DC2626">?</text>
+
+          <circle cx="162" cy="112" r="15" fill="#FDBA74" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M156 97 L166 90 L168 98 Z" fill="#1E293B"/>
+          <circle cx="157" cy="111" r="2" fill="#1E293B"/>
+          <circle cx="166" cy="111" r="2" fill="#1E293B"/>
+          <ellipse cx="161" cy="120" rx="4" ry="3" fill="#991B1B"/>
+          <path d="M142 148 C142 128, 182 128, 182 148 Z" fill="#10B981"/>
+          <text x="182" y="102" font-size="16" font-weight="900" fill="#DC2626">?</text>
+        </svg>`
+      },
+      '鋒利': {
+        caption: '刀刃極薄極尖，輕易切開木板',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#ECFDF5"/>
+          <!-- 左半邊木板 -->
+          <polygon points="48,32 98,16 124,116 74,134" fill="#FBBF24" stroke="#78350F" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M64 44 Q76 70 68 98 M82 36 Q92 68 88 106" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+          <!-- 右半邊木板 -->
+          <polygon points="106,14 152,28 178,108 132,126" fill="#F59E0B" stroke="#78350F" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M124 34 Q138 62 134 94 M142 42 Q152 68 148 98" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round"/>
+          <!-- 鋒利銀色刀刃切入木板 -->
+          <path d="M126 105 L186 92 L188 106 Q155 122 126 118 Z" fill="#F8FAFC" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          <!-- 刀柄 -->
+          <rect x="184" y="88" width="24" height="16" rx="5" transform="rotate(-12 184 88)" fill="#DC2626" stroke="#7F1D1D" stroke-width="2"/>
+          <!-- 刀鋒閃光 -->
+          <path d="M138 96 L142 86 L146 96 L156 100 L146 104 L142 114 L138 104 L128 100 Z" fill="#38BDF8"/>
+        </svg>`
+      },
+      '大言不慚': {
+        caption: '不顧事實地誇大吹牛，卻一點也不難為情',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#FFF7ED"/>
+          <!-- 吹牛者的誇大對話框（大鯊魚） -->
+          <ellipse cx="110" cy="36" rx="46" ry="26" fill="#FFFFFF" stroke="#1E293B" stroke-width="2.2"/>
+          <polygon points="94,60 104,60 88,74" fill="#FFFFFF" stroke="#1E293B" stroke-width="2"/>
+          <path d="M84 37 Q108 20 132 35 L140 28 L138 44 L132 39 Q108 50 84 37 Z" fill="#94A3B8" stroke="#334155" stroke-width="1.8"/>
+          <polygon points="104,26 112,17 115,27" fill="#94A3B8" stroke="#334155" stroke-width="1.5"/>
+          <circle cx="93" cy="35" r="2" fill="#1E293B"/>
+
+          <!-- 兩側真實的小魚思考泡泡 -->
+          <ellipse cx="34" cy="32" rx="22" ry="15" fill="#FFFFFF" stroke="#64748B" stroke-width="1.8"/>
+          <ellipse cx="32" cy="32" rx="8" ry="4.5" fill="#60A5FA" stroke="#1E3A8A" stroke-width="1.2"/>
+          <polygon points="40,32 45,28 45,36" fill="#60A5FA"/>
+
+          <ellipse cx="186" cy="32" rx="22" ry="15" fill="#FFFFFF" stroke="#64748B" stroke-width="1.8"/>
+          <ellipse cx="184" cy="32" rx="8" ry="4.5" fill="#60A5FA" stroke="#1E3A8A" stroke-width="1.2"/>
+          <polygon points="192,32 197,28 197,36" fill="#60A5FA"/>
+
+          <!-- 誇張張開雙手吹牛的人 -->
+          <circle cx="68" cy="94" r="15" fill="#FDBA74" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M54 88 Q68 76 82 88" fill="#78350F"/>
+          <ellipse cx="72" cy="99" rx="5" ry="4" fill="#DC2626"/>
+          <path d="M44 148 L48 112 L88 112 L92 148 Z" fill="#EF4444" stroke="#7F1D1D" stroke-width="2"/>
+          <path d="M48 116 L26 96 M88 116 L110 96" stroke="#EF4444" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="24" cy="92" r="5" fill="#FDBA74"/>
+          <circle cx="112" cy="92" r="5" fill="#FDBA74"/>
+
+          <!-- 旁邊流冷汗的聽眾 -->
+          <circle cx="164" cy="96" r="15" fill="#FDE68A" stroke="#78350F" stroke-width="2"/>
+          <circle cx="158" cy="95" r="4.5" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.6"/>
+          <circle cx="168" cy="95" r="4.5" fill="#FFFFFF" stroke="#1E293B" stroke-width="1.6"/>
+          <path d="M174 84 Q178 90 174 93 Q170 90 174 84 Z" fill="#38BDF8"/>
+          <path d="M144 148 L148 114 L180 114 L184 148 Z" fill="#1D4ED8"/>
+        </svg>`
+      },
+      '得意忘形': {
+        caption: '高興得手舞足蹈，連儀態都忘記了',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#FDF2F8"/>
+          <!-- 歡樂星星裝飾 -->
+          <text x="28" y="38" font-size="18">✨</text>
+          <text x="174" y="42" font-size="18">🎉</text>
+          <text x="34" y="122" font-size="16">⭐</text>
+          <!-- 跳躍的小女孩 -->
+          <!-- 雙馬尾 -->
+          <path d="M84 44 Q58 34 52 54 Q66 56 84 50 Z" fill="#EA580C" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M136 44 Q162 34 168 54 Q154 56 136 50 Z" fill="#EA580C" stroke="#7C2D12" stroke-width="2"/>
+          <!-- 臉與誇張大笑吐舌 -->
+          <circle cx="110" cy="48" r="24" fill="#FDBA74" stroke="#7C2D12" stroke-width="2.2"/>
+          <path d="M88 42 Q110 20 132 42" fill="#EA580C"/>
+          <circle cx="101" cy="44" r="3" fill="#1E293B"/>
+          <circle cx="119" cy="44" r="3" fill="#1E293B"/>
+          <path d="M96 54 Q110 72 124 54 Z" fill="#DC2626" stroke="#7F1D1D" stroke-width="1.5"/>
+          <ellipse cx="114" cy="64" rx="5" ry="6" fill="#FB7185"/>
+          <!-- 花朵連身裙與手舞足蹈 -->
+          <polygon points="94,72 126,72 136,112 84,112" fill="#F472B6" stroke="#9D174D" stroke-width="2.2"/>
+          <path d="M94 78 L64 56 M126 78 L156 56" stroke="#FDBA74" stroke-width="7" stroke-linecap="round"/>
+          <path d="M98 112 L88 136 M122 112 L138 130" stroke="#FDBA74" stroke-width="7" stroke-linecap="round"/>
+        </svg>`
+      },
+      '堅固': {
+        caption: '結實牢固，怎麼碰撞也不容易損毀',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#FEFCE8"/>
+          <!-- 地面線 -->
+          <line x1="20" y1="116" x2="200" y2="116" stroke="#65A30D" stroke-width="4" stroke-linecap="round"/>
+          <!-- 結實厚重的陶罐 -->
+          <path d="M64 46 C44 52, 44 102, 64 108 L138 108 C150 102, 150 52, 138 46 Z" fill="#FDA4AF" stroke="#881337" stroke-width="3"/>
+          <rect x="142" y="54" width="18" height="46" rx="6" fill="#FB7185" stroke="#881337" stroke-width="3"/>
+          <!-- 堅固厚度紋路 -->
+          <path d="M76 48 Q68 77 76 106 M124 48 Q116 77 124 106" fill="none" stroke="#E11D48" stroke-width="2.5"/>
+          <!-- 閃亮無損標記 -->
+          <path d="M96 68 L100 58 L104 68 L114 72 L104 76 L100 86 L96 76 L86 72 Z" fill="#FFFFFF"/>
+          <!-- 地面反彈波紋（表示跌落也完好無缺） -->
+          <path d="M62 124 Q68 118 74 124 Q80 130 86 124" fill="none" stroke="#CA8A04" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M118 124 Q124 118 130 124 Q136 130 142 124" fill="none" stroke="#CA8A04" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      '圍觀': {
+        caption: '人們圍成一圈，聚精會神地觀看',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#F0FDF4"/>
+          <!-- 中央賣兵器的人 -->
+          <circle cx="122" cy="44" r="14" fill="#FDBA74" stroke="#7C2D12" stroke-width="2"/>
+          <path d="M104 94 L108 60 L136 60 L140 94 Z" fill="#6366F1" stroke="#312E81" stroke-width="2"/>
+          <!-- 長矛與盾 -->
+          <line x1="86" y1="68" x2="156" y2="24" stroke="#78350F" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="164,19 150,21 157,31" fill="#E2E8F0" stroke="#334155" stroke-width="1.5"/>
+          <rect x="142" y="56" width="22" height="32" rx="4" fill="#FACC15" stroke="#854D0E" stroke-width="2"/>
+          <!-- 四周圍觀的人群背影與側影 -->
+          <!-- 左側長者 -->
+          <circle cx="56" cy="54" r="14" fill="#FDE68A" stroke="#78350F" stroke-width="2"/>
+          <path d="M40 128 L44 70 L68 70 L72 128 Z" fill="#78716C" stroke="#292524" stroke-width="2"/>
+          <!-- 前排圍觀者1 -->
+          <circle cx="88" cy="96" r="13" fill="#1E293B"/>
+          <path d="M72 146 C72 114, 104 114, 104 146 Z" fill="#EC4899" stroke="#831843" stroke-width="2"/>
+          <!-- 前排圍觀者2（小孩） -->
+          <circle cx="124" cy="104" r="11" fill="#1E293B"/>
+          <path d="M110 146 C110 120, 138 120, 138 146 Z" fill="#F59E0B" stroke="#78350F" stroke-width="2"/>
+          <!-- 前排圍觀者3 -->
+          <circle cx="162" cy="94" r="13" fill="#1E293B"/>
+          <path d="M146 146 C146 112, 178 112, 178 146 Z" fill="#10B981" stroke="#065F46" stroke-width="2"/>
+        </svg>`
+      },
+      '刺穿': {
+        caption: '尖銳的東西用力穿過物體',
+        svg: `<svg viewBox="0 0 220 150" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="220" height="150" rx="16" fill="#FEF2F2"/>
+          <!-- 桌面 -->
+          <rect x="24" y="122" width="172" height="16" rx="6" fill="#D97706" stroke="#78350F" stroke-width="2"/>
+          <!-- 紅色番茄 -->
+          <ellipse cx="110" cy="104" rx="38" ry="26" fill="#EF4444" stroke="#991B1B" stroke-width="2.5"/>
+          <!-- 番茄綠葉蒂頭 -->
+          <path d="M88 84 Q102 74 110 86 Q118 74 132 84 Q118 90 110 88 Q102 90 88 84 Z" fill="#16A34A" stroke="#14532D" stroke-width="2"/>
+          <!-- 尖銳金屬刀尖刺入物體 -->
+          <path d="M112 12 L126 12 Q122 58 110 88 Q104 56 112 12 Z" fill="#E2E8F0" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          <!-- 刀刃反光與刺入速度線 -->
+          <line x1="116" y1="22" x2="113" y2="68" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="94" y1="30" x2="94" y2="54" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 4"/>
+          <line x1="134" y1="30" x2="134" y2="54" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 4"/>
+        </svg>`
+      }
+    };
+
+    // 渲染詞語插畫卡片（支援單張或多張組合顯示）
+    function renderVocabIllustrationHTML(vocabKeys, compact = false) {
+      const keys = Array.isArray(vocabKeys) ? vocabKeys : [vocabKeys];
+      const validItems = keys.map(k => ({ key: k, data: VOCAB_ILLUSTRATIONS[k] })).filter(item => item.data);
+      if (validItems.length === 0) return '';
+
+      if (validItems.length === 1) {
+        const item = validItems[0];
+        return `
+          <div class="my-2 p-3 sm:p-4 rounded-2xl bg-amber-50/70 border-2 border-amber-200 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div class="${compact ? 'w-36 h-24 sm:w-44 sm:h-28' : 'w-44 h-28 sm:w-52 sm:h-32'} shrink-0 rounded-2xl overflow-hidden border-2 border-white shadow-xs bg-white">
+              ${item.data.svg}
+            </div>
+            <div class="text-center sm:text-left space-y-1">
+              <span class="inline-block px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 text-xs font-black">🖼️ 圖像小提示</span>
+              <p class="text-sm sm:text-base font-bold text-slate-700 leading-snug">${item.data.caption}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // 多張圖片並列（例如綜合運用題）
+      return `
+        <div class="my-2 p-3 rounded-2xl bg-amber-50/70 border-2 border-amber-200 space-y-2">
+          <div class="text-xs font-black text-amber-900">🖼️ 圖像小提示（對照三個情境）：</div>
+          <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            ${validItems.map((item, idx) => `
+              <div class="bg-white rounded-xl p-1.5 border border-amber-200 flex flex-col items-center text-center shadow-2xs">
+                <div class="w-full h-16 sm:h-24 rounded-lg overflow-hidden">
+                  ${item.data.svg}
+                </div>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-600 mt-1 line-clamp-1">圖(${idx + 1}) ${item.data.caption}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== 2.6 內置免登入詞語部首分析資料庫（無需登入 Gmail 即可查閱） ====================
+    const RADICAL_ANALYSIS_DATA = {
+      '鋒利': {
+        wordMeaning: '形容頭尖或刃薄的工具、武器容易切入或刺入物體。',
+        chars: [
+          { char: '鋒', radical: '金部（釒）', strokes: '15 畫', reason: '左邊是「釒」（金字旁），古代的刀劍與長矛多用金屬鑄造，所以從「金」部。' },
+          { char: '利', radical: '刀部（刂）', strokes: '7 畫', reason: '右邊是「刂」（立刀旁），本義是用鐮刀收割禾稼，表示刀刃尖銳、容易切割。' }
+        ]
+      },
+      '擺賣': {
+        wordMeaning: '多指叫賣貨品，想招攬顧客。',
+        chars: [
+          { char: '擺', radical: '手部（扌）', strokes: '18 畫', reason: '左邊是「扌」（提手旁），表示小販用手把貨品排列陳設出來。' },
+          { char: '賣', radical: '貝部', strokes: '15 畫', reason: '下邊是「貝」部，古代把貝殼當作錢幣使用，因此「貝」部的字多與買賣財物有關。' }
+        ]
+      },
+      '自相矛盾': {
+        wordMeaning: '比喻做事或說話先後不相應、互相抵觸。',
+        chars: [
+          { char: '自', radical: '自部', strokes: '6 畫', reason: '「自」本身就是部首，象形字，原指鼻子，引申為「自己、本身」。' },
+          { char: '相', radical: '目部', strokes: '9 畫', reason: '右邊是「目」部，本義是用眼睛仔細察看，引申為互相、彼此。' },
+          { char: '矛', radical: '矛部', strokes: '5 畫', reason: '「矛」本身就是部首，字形像古代用來刺擊敵人的長柄兵器。' },
+          { char: '盾', radical: '目部', strokes: '9 畫', reason: '下邊是「目」部，古代士兵舉起盾牌時主要用來遮護眼睛和頭部。' }
+        ]
+      },
+      '大言不慚': {
+        wordMeaning: '說話時，不顧事實地誇大，卻一點也不會感到難為情。',
+        chars: [
+          { char: '大', radical: '大部', strokes: '3 畫', reason: '「大」本身就是部首，像人張開雙手雙腳站立的樣子，表示宏大、誇張。' },
+          { char: '言', radical: '言部', strokes: '7 畫', reason: '「言」本身就是部首，凡從「言」部的字多與說話、言語有關。' },
+          { char: '不', radical: '一部', strokes: '4 畫', reason: '第一筆為橫畫「一」，歸入「一」部，表示否定、沒有。' },
+          { char: '慚', radical: '心部（忄）', strokes: '14 畫', reason: '左邊是「忄」（豎心旁），因為羞愧、難為情屬於內心感受，所以從「心」部。' }
+        ]
+      },
+      '得意忘形': {
+        wordMeaning: '因過度高興，以致言行失去常態的樣子。',
+        chars: [
+          { char: '得', radical: '彳部', strokes: '11 畫', reason: '左邊是「彳」（雙人旁），多與道路行走、尋得事物有關。' },
+          { char: '意', radical: '心部', strokes: '13 畫', reason: '下邊是「心」部，表示心意、念頭與情緒。' },
+          { char: '忘', radical: '心部', strokes: '7 畫', reason: '下邊是「心」部，記憶與遺忘都屬於心理活動，所以從「心」部。' },
+          { char: '形', radical: '彡部', strokes: '7 畫', reason: '右邊是「彡」（三撇），多與外貌、形狀、禮儀姿態有關。' }
+        ]
+      },
+      '堅固': {
+        wordMeaning: '結實牢固，不容易損毀。',
+        chars: [
+          { char: '堅', radical: '土部', strokes: '11 畫', reason: '下邊是「土」部，本義指泥土結實堅硬，引申為牢固。' },
+          { char: '固', radical: '囗部', strokes: '8 畫', reason: '外框是「囗」（大口框），表示四面圍護、穩固不易動搖。' }
+        ]
+      },
+      '圍觀': {
+        wordMeaning: '人們圍着觀看。',
+        chars: [
+          { char: '圍', radical: '囗部', strokes: '12 畫', reason: '外框是「囗」（大口框），表示四周環繞、包圍起來。' },
+          { char: '觀', radical: '見部', strokes: '25 畫', reason: '右邊是「見」部，與眼睛觀看、察看事物有關。' }
+        ]
+      },
+      '刺穿': {
+        wordMeaning: '尖的東西穿過物體。',
+        chars: [
+          { char: '刺', radical: '刀部（刂）', strokes: '8 畫', reason: '右邊是「刂」（立刀旁），表示用尖銳利器直接刺入物體。' },
+          { char: '穿', radical: '穴部', strokes: '9 畫', reason: '上邊是「穴」部，本義是在洞穴或物體中鑿通、穿透過去。' }
+        ]
+      },
+      '分別': {
+        wordMeaning: '辨別不同之處，或各自離別。',
+        chars: [
+          { char: '分', radical: '刀部', strokes: '4 畫', reason: '下邊是「刀」部，本義是用刀把東西一分為二。' },
+          { char: '別', radical: '刀部（刂）', strokes: '7 畫', reason: '右邊是「刂」（立刀旁），表示用刀分割開來，引申為區分、離別。' }
+        ]
+      },
+      '削鉛筆': {
+        wordMeaning: '用小刀或筆刨把鉛筆的木頭削尖。',
+        chars: [
+          { char: '削', radical: '刀部（刂）', strokes: '9 畫', reason: '右邊是「刂」（立刀旁），表示用刀斜着刮去物體表層。' },
+          { char: '鉛', radical: '金部（釒）', strokes: '13 畫', reason: '左邊是「釒」（金字旁），本指一種金屬礦物，故從「金」部。' },
+          { char: '筆', radical: '竹部', strokes: '12 畫', reason: '上邊是「竹」部（竹字頭），因為古代毛筆的筆桿多用竹子製成。' }
+        ]
+      }
+    };
+
+    function openLocalRadicalAnalyzer(word) {
+      const info = RADICAL_ANALYSIS_DATA[word];
+      const modal = document.getElementById('localRadicalModal');
+      const titleEl = document.getElementById('localRadicalModalTitle');
+      const bodyEl = document.getElementById('localRadicalModalBody');
+      if (!modal || !bodyEl) return;
+
+      titleEl.textContent = `詞語【${word}】部首與筆畫詳細分析`;
+
+      if (!info) {
+        bodyEl.innerHTML = `<p class="text-slate-700 font-bold">暫無「${word}」的詳細資料。</p>`;
+        modal.classList.remove('hidden');
+        return;
+      }
+
+      const readAllText = `詞語，${word}。意思是：${info.wordMeaning}。` +
+        info.chars.map(c => `${c.char}字，部首是${c.radical}，總共${c.strokes}。${c.reason}`).join('。');
+
+      bodyEl.innerHTML = `
+        <div class="bg-white p-4 rounded-2xl border-2 border-cyan-200 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800">詞語解釋</span>
+            <p class="text-base sm:text-lg font-black text-slate-800 mt-1">【${word}】：${info.wordMeaning}</p>
+          </div>
+          <button
+            type="button"
+            onclick="speakCantonese(\`${escapeForAttr(readAllText)}\`, this)"
+            class="btn-tactile px-4 py-2 rounded-2xl bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-sm border-b-2 border-blue-300"
+          >
+            🔊 粵語朗讀全部分析
+          </button>
+        </div>
+
+        ${VOCAB_ILLUSTRATIONS[word] ? renderVocabIllustrationHTML(word, true) : ''}
+
+        <div class="space-y-3">
+          <div class="text-sm font-black text-slate-700">🔎 逐字拆解部首與筆畫（共 ${info.chars.length} 個字）：</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${info.chars.map(c => `
+              <div class="bg-white p-4 rounded-2xl border-2 border-indigo-100 shadow-2xs space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-amber-400 flex items-center justify-center text-2xl font-black text-slate-900">
+                    ${c.char}
+                  </div>
+                  <div class="text-right">
+                    <div class="inline-block px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-black text-xs sm:text-sm">
+                      部首：${c.radical}
+                    </div>
+                    <div class="text-xs font-bold text-slate-500 mt-1">總筆畫：${c.strokes}</div>
+                  </div>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  💡 ${c.reason}
+                </p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeLocalRadicalModal() {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      const modal = document.getElementById('localRadicalModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // ==================== 3. 完整題庫（練習一至四各 10 題，每題均附詳細解析） ====================
+    const PRACTICE_UNITS = [
+      {
+        id: 'u1',
+        shortTitle: '練習一',
+        title: '練習一：課文理解與品德情意',
+        subtitle: '深入了解《自相矛盾》故事情節、兵器特點與處世道理',
+        icon: '📖',
+        color: 'from-amber-400 to-orange-500',
+        badgeBg: 'bg-amber-100 text-amber-800',
+        border: 'border-amber-300',
+        questions: [
+          {
+            id: 'u1_1',
+            category: '課文理解',
+            question: '故事中的小販在哪裏擺賣兵器？',
+            options: ['A. 集市', 'B. 食店', 'C. 商店'],
+            answer: 0,
+            explanation: '課文第一段提到：「從前，有個小販在集市上擺賣兵器。」所以地點是集市。'
+          },
+          {
+            id: 'u1_2',
+            category: '課文理解',
+            question: '小販在集市上正在擺賣哪兩種兵器？',
+            options: ['A. 矛和槍', 'B. 矛和盾', 'C. 槍和刀'],
+            answer: 1,
+            explanation: '小販大喊：「快來看我的矛和盾！」可見他售賣的是矛和盾。'
+          },
+          {
+            id: 'u1_3',
+            category: '課文理解',
+            question: '集市上除了小販和長者外，還有誰在場？',
+            options: ['A. 種菜的人', 'B. 圍觀的人', 'C. 養牛的人'],
+            answer: 1,
+            explanation: '課文中提到「圍觀的人都一起追問」，所以除了小販和長者外，還有圍觀的人。'
+          },
+          {
+            id: 'u1_4',
+            category: '課文理解',
+            question: '小販如何向別人推介自己所售賣的矛？',
+            options: ['A. 小販說自己賣的矛是世界上最長的。', 'B. 小販說自己賣的矛是世界上最鋒利的。', 'C. 小販說自己賣的矛不易折斷。'],
+            answer: 1,
+            explanation: '小販大言不慚地說：「這是世界上最鋒利的矛，任何堅固的盾都擋不住它！」'
+          },
+          {
+            id: 'u1_5',
+            category: '課文理解',
+            question: '小販又怎樣誇讚自己所售賣的盾？',
+            options: ['A. 盾牌是用純金造的，非常名貴。', 'B. 盾牌堅固無比，即使世界上最鋒利的矛也不能刺穿它。', 'C. 盾牌非常輕巧，小孩子也能舉起。'],
+            answer: 1,
+            explanation: '小販得意忘形地說：「我賣的盾可是堅固無比的，即使世界上最鋒利的矛也不能刺穿它！」'
+          },
+          {
+            id: 'u1_6',
+            category: '課文理解',
+            question: '誰向小販提出了「用最鋒利的矛去刺最堅固的盾會怎樣」的疑問？',
+            options: ['A. 士兵', 'B. 小孩子', 'C. 長者'],
+            answer: 2,
+            explanation: '課文第三段指出：「人羣中有一位長者走上前來問……」因此提出疑問的是長者。'
+          },
+          {
+            id: 'u1_7',
+            category: '兵器常識',
+            question: '課文中提到「矛」和「盾」兩種兵器，哪一種是用作「防守」的？',
+            options: ['A. 盾', 'B. 刀', 'C. 矛'],
+            answer: 0,
+            explanation: '「盾」（盾牌）用來擋住敵人的攻擊，屬於防守兵器；「矛」則用來刺擊敵人，屬於進攻兵器。'
+          },
+          {
+            id: 'u1_8',
+            category: '成語道理',
+            question: '小販說自己的矛什麼盾都擋不住，又說自己的盾什麼矛都刺不穿。這個故事帶出甚麼道理？',
+            options: ['A. 我們說話或做事不要先後不相應，互相抵觸。', 'B. 買東西前一定要跟小販討價還價。', 'C. 集市上不應該售賣任何兵器。'],
+            answer: 0,
+            explanation: '成語故事「自相矛盾」比喻說話或做事前後不相應、互相抵觸，提醒我們說話要實事求是。'
+          },
+          {
+            id: 'u1_9',
+            category: '品德情意',
+            question: '如果我們的說話和行為一致，會有甚麼正面影響？',
+            options: ['A. 得人喜歡，並得到別人的信任和尊重', 'B. 失去所有朋友', 'C. 令大家都不敢跟我們說話'],
+            answer: 0,
+            explanation: '我們說話和行為一致（言行一致），才會得人喜歡，並贏得別人的信任和尊重。'
+          },
+          {
+            id: 'u1_10',
+            category: '課文理解',
+            question: '聽完長者和圍觀的人追問後，小販最後有甚麼反應？',
+            options: ['A. 立刻當場用矛刺向盾牌示範', 'B. 張着嘴巴說不出話來，收拾東西慌忙離去', 'C. 免費把矛和盾送給長者'],
+            answer: 1,
+            explanation: '小販因為自相矛盾、無法自圓其說，頓時張着嘴巴說不出話來，只好藉口天不早了收拾東西慌忙離去。'
+          }
+        ]
+      },
+      {
+        id: 'u2',
+        shortTitle: '練習二',
+        title: '練習二：詞語解釋與詞語運用',
+        subtitle: '看圖理解並掌握課文 8 個重點詞語的意思及語境應用',
+        icon: '📝',
+        color: 'from-sky-400 to-blue-600',
+        badgeBg: 'bg-sky-100 text-sky-800',
+        border: 'border-sky-300',
+        questions: [
+          {
+            id: 'u2_1',
+            vocabKey: '自相矛盾',
+            category: '詞語解釋',
+            question: '看圖想一想，「比喻做事或說話先後不相應、互相抵觸」是哪個詞語的意思？',
+            options: ['A. 大言不慚', 'B. 自相矛盾', 'C. 得意忘形'],
+            answer: 1,
+            explanation: '「自相矛盾」比喻做事或說話先後不相應、互相抵觸。'
+          },
+          {
+            id: 'u2_2',
+            vocabKey: '大言不慚',
+            category: '詞語解釋',
+            question: '看圖想一想，「說話時，不顧事實地誇大，卻一點也不會感到難為情」是指哪個詞語？',
+            options: ['A. 大言不慚', 'B. 擺賣', 'C. 圍觀'],
+            answer: 0,
+            explanation: '「大言不慚」的意思是說話時，不顧事實地誇大，卻一點也不會感到難為情。'
+          },
+          {
+            id: 'u2_3',
+            vocabKey: '擺賣',
+            category: '詞語解釋',
+            question: '看圖想一想，「多指叫賣貨品，想招攬顧客」是指哪個詞語？',
+            options: ['A. 擺賣', 'B. 鋒利', 'C. 堅固'],
+            answer: 0,
+            explanation: '「擺賣」多指擺設攤檔並叫賣貨品，想招攬顧客。'
+          },
+          {
+            id: 'u2_4',
+            vocabKey: '得意忘形',
+            category: '詞語解釋',
+            question: '看圖想一想，「因過度高興，以致言行失去常態的樣子」是指哪個詞語？',
+            options: ['A. 自相矛盾', 'B. 得意忘形', 'C. 大言不慚'],
+            answer: 1,
+            explanation: '「得意忘形」形容因過度高興，以致言行失去常態的樣子。'
+          },
+          {
+            id: 'u2_5',
+            vocabKey: '自相矛盾',
+            category: '詞語運用',
+            question: '詞語運用：班長請我們說話要小聲一點，她自己卻大聲說話，簡直是（　　）。',
+            options: ['A. 堅固', 'B. 自相矛盾', 'C. 刺'],
+            answer: 1,
+            explanation: '班長要求別人小聲說話，自己卻大聲說話，言行前後互相抵觸，因此應填「自相矛盾」。'
+          },
+          {
+            id: 'u2_6',
+            vocabKey: '大言不慚',
+            category: '詞語運用',
+            question: '詞語運用：他明明做錯了，仍然（　　）地說自己沒有錯。',
+            options: ['A. 自相矛盾', 'B. 擺賣', 'C. 大言不慚'],
+            answer: 2,
+            explanation: '做錯事仍不顧事實地說自己沒錯，一點也不感到難為情，符合「大言不慚」的意思。'
+          },
+          {
+            id: 'u2_7',
+            vocabKey: '擺賣',
+            category: '詞語運用',
+            question: '詞語運用：這一條街道有許多小販（　　）貨物。',
+            options: ['A. 得意忘形', 'B. 大言不慚', 'C. 擺賣'],
+            answer: 2,
+            explanation: '小販在街道上陳列及叫賣貨品招攬顧客，應填「擺賣」。'
+          },
+          {
+            id: 'u2_8',
+            vocabKey: '鋒利',
+            category: '詞語運用',
+            question: '詞語運用：我的手被（　　）的玻璃碎割傷了。',
+            options: ['A. 自相矛盾', 'B. 擺賣', 'C. 鋒利'],
+            answer: 2,
+            explanation: '「鋒利」形容頭尖或刃薄的物件容易切入物體，玻璃碎邊緣尖銳容易割傷手，故選「鋒利」。'
+          },
+          {
+            id: 'u2_9',
+            vocabKey: '得意忘形',
+            category: '詞語運用',
+            question: '詞語運用：我們獲得稱讚時切勿（　　），要謙虛一點。',
+            options: ['A. 堅固', 'B. 鋒利', 'C. 得意忘形'],
+            answer: 2,
+            explanation: '獲得稱讚時若過度高興而失去常態，就是「得意忘形」，所以我們要保持謙虛。'
+          },
+          {
+            id: 'u2_10',
+            vocabKey: ['堅固', '刺穿', '圍觀'],
+            category: '詞語運用',
+            question: '詞語運用：《三隻小豬》中，三弟用磚石建造的房子比兩個哥哥的（　　）多了；而哥哥被蜜蜂（　　）傷手臂，老師也不許我們走近車禍現場（　　）。請選出順序正確的一組：',
+            options: ['A. 堅固、刺、圍觀', 'B. 鋒利、圍觀、刺', 'C. 堅固、擺賣、鋒利'],
+            answer: 0,
+            explanation: '磚石房子結實牢固，用「堅固」；蜜蜂的尾針穿過皮膚，用「刺」；人們圍着觀看車禍，用「圍觀」。順序為「堅固、刺、圍觀」。'
+          }
+        ]
+      },
+      {
+        id: 'u3',
+        shortTitle: '練習三',
+        title: '練習三：語文知識（部首「刀(刂)」與重疊動詞）',
+        subtitle: '認識「刀(刂)」部首的字形演變，以及「動詞 + 一 + 動詞」的用法',
+        icon: '🔤',
+        color: 'from-emerald-400 to-teal-600',
+        badgeBg: 'bg-emerald-100 text-emerald-800',
+        border: 'border-emerald-300',
+        questions: [
+          {
+            id: 'u3_1',
+            category: '部首「刀(刂)」',
+            question: '當「刀」寫在字的右邊時，要寫成甚麼形狀？（例如「刺」、「別」）',
+            options: ['A. 「刂」（立刀旁）', 'B. 保持不變，寫成「刀」', 'C. 寫成「力」'],
+            answer: 0,
+            explanation: '根據語文知識規則，當「刀」寫在字的右邊時，要寫成「刂」（例如「刺」、「別」、「削」）。'
+          },
+          {
+            id: 'u3_2',
+            category: '部首「刀(刂)」',
+            question: '當「刀」寫在字的下邊時，應該怎樣寫？（例如「分」、「剪」）',
+            options: ['A. 保持不變，寫成「刀」', 'B. 寫成「刂」', 'C. 寫成「八」'],
+            answer: 0,
+            explanation: '當「刀」寫在字的下邊時形狀不變，仍然寫成「刀」，例如「分」、「剪」。'
+          },
+          {
+            id: 'u3_3',
+            category: '部首「刀(刂)」',
+            question: '「刀(刂)」部的字大多與甚麼事物有關？',
+            options: ['A. 利器或利器的用途', 'B. 植物或花草樹木', 'C. 水流或江河湖海'],
+            answer: 0,
+            explanation: '「刀」部的字多跟利器或利器的用途有關，例如「刺」、「削」、「剪」、「分」。'
+          },
+          {
+            id: 'u3_4',
+            category: '部首「刀(刂)」',
+            question: '在「肖」字的右邊加上「刂」，會組成哪個完整的字？',
+            options: ['A. 削（削鉛筆）', 'B. 消（消失）', 'C. 梢（樹梢）'],
+            answer: 0,
+            explanation: '「肖」加上右邊的「刂」組成「削」字（例如削鉛筆、削果皮），部首是「刀(刂)」部。'
+          },
+          {
+            id: 'u3_5',
+            category: '部首「刀(刂)」',
+            question: '在「前」字的下邊加上「刀」，會組成哪個完整的字？',
+            options: ['A. 剪（剪刀）', 'B. 煎（煎蛋）', 'C. 箭（弓箭）'],
+            answer: 0,
+            explanation: '「前」加上下邊的「刀」組成「剪」字，與利器有關，部首是「刀」部。'
+          },
+          {
+            id: 'u3_6',
+            category: '部首「刀(刂)」',
+            question: '在「禾」的右邊加上「刂」組成「利」字，請問「利」字的部首是甚麼？',
+            options: ['A. 刀部（刂）', 'B. 禾部', 'C. 木部'],
+            answer: 0,
+            explanation: '「利」的右邊是「刂」（刀部），本義是用鐮刀收割禾稼，表示鋒利。'
+          },
+          {
+            id: 'u3_7',
+            category: '重疊的動詞',
+            question: '在重疊動詞之間加上「一」（例如「看一看」），表示甚麼意思？',
+            options: ['A. 做動作的時間比較短暫，而且有嘗試一下的意思', 'B. 做動作的時間非常漫長，永遠不會停止', 'C. 表示完全沒有做過這個動作'],
+            answer: 0,
+            explanation: '在重疊動詞之間加「一」，表示做動作的時間比較短暫，而且有嘗試一下的意思。'
+          },
+          {
+            id: 'u3_8',
+            category: '重疊的動詞',
+            question: '哥哥打翻了水杯，他立刻用乾毛巾（　　）桌子，然後再用清水（　　）毛巾。',
+            options: ['A. 抹一抹、洗一洗', 'B. 敲一敲、嚐一嚐', 'C. 做一做、擦一擦'],
+            answer: 0,
+            explanation: '清理打翻的水杯時，先用乾毛巾「抹一抹」桌子，再用清水「洗一洗」毛巾。'
+          },
+          {
+            id: 'u3_9',
+            category: '重疊的動詞',
+            question: '爸爸告訴弟弟，進入別人房間前，應先（　　）門；每當感到疲累時，爸爸都會（　　）體操，伸展筋骨。',
+            options: ['A. 敲一敲、做一做', 'B. 擦一擦、嚐一嚐', 'C. 洗一洗、抹一抹'],
+            answer: 0,
+            explanation: '進房間前禮貌地「敲一敲」門；疲累時「做一做」體操伸展筋骨。'
+          },
+          {
+            id: 'u3_10',
+            category: '重疊的動詞',
+            question: '媽媽用舊報紙（　　）玻璃窗，窗子馬上變得光亮潔淨。',
+            options: ['A. 擦一擦', 'B. 嚐一嚐', 'C. 敲一敲'],
+            answer: 0,
+            explanation: '清潔玻璃窗的動作應配搭「擦一擦」。'
+          }
+        ]
+      },
+      {
+        id: 'u4',
+        shortTitle: '練習四',
+        title: '練習四：寫作續篇與實用閱讀《天氣預報》',
+        subtitle: '掌握《自相矛盾》續寫構思，並學會閱讀香港天文台九天天氣預報',
+        icon: '🌤️',
+        color: 'from-violet-500 to-purple-600',
+        badgeBg: 'bg-violet-100 text-violet-800',
+        border: 'border-violet-300',
+        questions: [
+          {
+            id: 'u4_1',
+            category: '寫作訓練（續寫故事）',
+            question: '在《自相矛盾》寫作訓練中，題目要求故事《自相矛盾》續篇以甚麼情節作為開始？',
+            options: ['A. 小販第二天擺賣', 'B. 小販把兵器全部丟進河裏', 'C. 長者向小販道歉'],
+            answer: 0,
+            explanation: '寫作題目要求以「小販第二天擺賣」為開始，以「成功賣出矛和盾」為結尾。'
+          },
+          {
+            id: 'u4_2',
+            category: '寫作訓練（續寫故事）',
+            question: '續寫故事中，第二天「早上」小販到集市售賣哪一種兵器，並請圍觀的人試驗？',
+            options: ['A. 盾（試驗後盾沒有破損）', 'B. 矛（試驗後矛折斷了）', 'C. 寶劍（砍斷了石頭）'],
+            answer: 0,
+            explanation: '第二天早上，小販先到集市賣「盾」，並請圍觀的人試驗他的盾，結果盾沒有破損，人們都買他的盾。'
+          },
+          {
+            id: 'u4_3',
+            category: '寫作訓練（續寫故事）',
+            question: '續寫故事中，到了「下午（中午）」時，小販在集市高聲叫賣「矛」，他請圍觀的人怎樣試驗他的矛？',
+            options: ['A. 使勁地刺在地上十多下，矛一點也沒有損壞', 'B. 用矛去刺自己早上賣出的盾牌', 'C. 把矛折彎測試彈性'],
+            answer: 0,
+            explanation: '下午時小販到集市賣矛，請圍觀的人使勁地刺在地上十多下，矛一點也沒有損壞，避免了前後抵觸。'
+          },
+          {
+            id: 'u4_4',
+            category: '寫作訓練（續寫故事）',
+            question: '續寫故事《自相矛盾》續篇的結尾是怎樣的？',
+            options: ['A. 圍觀的人看到矛和盾分開試驗都很厲害，紛紛付錢購買，成功賣出矛和盾', 'B. 小販再次回答不出問題，慌忙逃跑', 'C. 集市上沒有一個人理會小販'],
+            answer: 0,
+            explanation: '小販把盾和矛分開時間合理地展示優點，最後成功賣出所有矛和盾。'
+          },
+          {
+            id: 'u4_5',
+            category: '實用閱讀《天氣預報》',
+            question: '香港天文台的「香港九天天氣預報」資料一般包括哪四項主要內容？',
+            options: ['A. 氣溫、濕度、風向和風力、天氣概況', 'B. 股票價格、交通路線、新聞標題、電影時間', 'C. 學校假期、圖書目錄、食譜材料、比賽賽程'],
+            answer: 0,
+            explanation: '天氣預報資料一般包括：1. 氣溫、2. 濕度、3. 風向和風力、4. 天氣概況。'
+          },
+          {
+            id: 'u4_6',
+            category: '實用閱讀《天氣預報》',
+            hasWeatherChart: true,
+            question: '閱讀上方的天氣預報資料，未來數日天氣會受到甚麼季候風影響？',
+            options: ['A. 東北季候風', 'B. 西南季候風', 'C. 西北季候風'],
+            answer: 0,
+            explanation: '天氣概況清楚指出：「一股微弱的東北季候風會在接近週末抵達中國東南沿岸」。'
+          },
+          {
+            id: 'u4_7',
+            category: '實用閱讀《天氣預報》',
+            hasWeatherChart: true,
+            question: '查看預報圖表，星期六（9月23日）的氣溫介乎多少度？',
+            options: ['A. 最低氣溫約 26 度，最高氣溫約 31 度', 'B. 最低氣溫約 27 度，最高氣溫約 33 度', 'C. 最低氣溫約 26 度，最高氣溫約 30 度'],
+            answer: 0,
+            explanation: '圖表顯示 9月23日（六）的氣溫為「26 | 31 °C」，即最低氣溫約 26 度，最高氣溫約 31 度。'
+          },
+          {
+            id: 'u4_8',
+            category: '實用閱讀《天氣預報》',
+            hasWeatherChart: true,
+            question: '根據預報資料，星期六（9月23日）的天氣會怎樣？',
+            options: ['A. 大致多雲，有幾陣驟雨，日間短暫時間有陽光', 'B. 天色晴朗萬里無雲，完全不會下雨', 'C. 寒冷乾燥，吹強勁北風'],
+            answer: 0,
+            explanation: '9月23日（六）的天氣概況欄寫明：「大致多雲，有幾陣驟雨。日間短暫時間有陽光。」'
+          },
+          {
+            id: 'u4_9',
+            category: '實用閱讀《天氣預報》',
+            hasWeatherChart: true,
+            question: '星期六（9月23日）有幾陣驟雨，當日如要外出，你最適合帶備甚麼東西？',
+            options: ['A. 雨傘', 'B. 厚羽絨大衣', 'C. 滑雪手套'],
+            answer: 0,
+            explanation: '因為星期六有幾陣驟雨，外出時應帶備「雨傘」以防淋雨。'
+          },
+          {
+            id: 'u4_10',
+            category: '實用閱讀《天氣預報》',
+            hasWeatherChart: true,
+            question: '比較 9月23日（六）至 9月26日（二）四天的氣溫，哪一天的最高氣溫略降至 30 °C？',
+            options: ['A. 9月26日（星期二）', 'B. 9月23日（星期六）', 'C. 9月24日（星期日）'],
+            answer: 0,
+            explanation: '查看圖表：9月23日至25日最高氣溫均為 31 °C，而 9月26日（二）氣溫為「26 | 30 °C」，最高氣溫為 30 °C。'
+          }
+        ]
+      },
+      {
+        id: 'u5',
+        shortTitle: '練習五',
+        title: '練習五：課文詞語部首辨別（附 Gemini 分析）',
+        subtitle: '看圖辨別課文重點詞語的部首，每題最尾可連結至 Gemini 深入分析部首',
+        icon: '🔎',
+        color: 'from-cyan-500 to-indigo-600',
+        badgeBg: 'bg-cyan-100 text-cyan-800',
+        border: 'border-cyan-300',
+        questions: [
+          {
+            id: 'u5_1',
+            targetWord: '鋒利',
+            targetChar: '鋒',
+            category: '課文詞語部首辨別',
+            question: '請辨別「鋒」字的部首：',
+            options: ['A. 金部（釒）', 'B. 刀部（刂）', 'C. 木部'],
+            answer: 0,
+            explanation: '「鋒」左邊是「金」部，因為古代刀劍長矛的尖端多以金屬鑄造。'
+          },
+          {
+            id: 'u5_2',
+            targetWord: '鋒利',
+            targetChar: '利',
+            category: '課文詞語部首辨別',
+            question: '請辨別「利」字的部首：',
+            options: ['A. 刀部（刂）', 'B. 禾部', 'C. 金部（釒）'],
+            answer: 0,
+            explanation: '「利」右邊是「刂」（刀部），表示刀刃銳利、容易切割。'
+          },
+          {
+            id: 'u5_3',
+            targetWord: '擺賣',
+            targetChar: '擺',
+            category: '課文詞語部首辨別',
+            question: '請辨別「擺」字的部首：',
+            options: ['A. 手部（扌）', 'B. 貝部', 'C. 罒部'],
+            answer: 0,
+            explanation: '「擺」左邊是「扌」（手部），表示用手擺設及陳列貨品。'
+          },
+          {
+            id: 'u5_4',
+            targetWord: '擺賣',
+            targetChar: '賣',
+            category: '課文詞語部首辨別',
+            question: '請辨別「賣」字的部首：',
+            options: ['A. 貝部', 'B. 手部（扌）', 'C. 士部'],
+            answer: 0,
+            explanation: '「賣」下邊是「貝」部，古代把貝殼當作錢幣，因此「貝」部的字多與買賣交易有關。'
+          },
+          {
+            id: 'u5_5',
+            targetWord: '自相矛盾',
+            targetChar: '矛',
+            category: '課文詞語部首辨別',
+            question: '請辨別「矛」字的部首：',
+            options: ['A. 矛部', 'B. 目部', 'C. 予部'],
+            answer: 0,
+            explanation: '「矛」本身就是「矛」部，是象形字，像古代長矛的形狀。'
+          },
+          {
+            id: 'u5_6',
+            targetWord: '自相矛盾',
+            targetChar: '盾',
+            category: '課文詞語部首辨別',
+            question: '請辨別「盾」字的部首：',
+            options: ['A. 目部', 'B. 厂部', 'C. 矛部'],
+            answer: 0,
+            explanation: '「盾」的部首是「目」部，因為古代士兵舉起盾牌時主要用來遮護眼睛與頭部。'
+          },
+          {
+            id: 'u5_7',
+            targetWord: '大言不慚',
+            targetChar: '慚',
+            category: '課文詞語部首辨別',
+            question: '請辨別「慚」字的部首：',
+            options: ['A. 心部（忄）', 'B. 車部', 'C. 斤部'],
+            answer: 0,
+            explanation: '「慚」左邊是「忄」（豎心旁，即「心」部），因為感到難為情、羞愧屬於內心情感。'
+          },
+          {
+            id: 'u5_8',
+            targetWord: '大言不慚',
+            targetChar: '言',
+            category: '課文詞語部首辨別',
+            question: '請辨別「言」字的部首：',
+            options: ['A. 言部', 'B. 口部', 'C. 亠部'],
+            answer: 0,
+            explanation: '「言」本身就是「言」部，凡從「言」部的字多與言語說話有關。'
+          },
+          {
+            id: 'u5_9',
+            targetWord: '得意忘形',
+            targetChar: '得',
+            category: '課文詞語部首辨別',
+            question: '請辨別「得」字的部首：',
+            options: ['A. 彳部', 'B. 寸部', 'C. 日部'],
+            answer: 0,
+            explanation: '「得」左邊是「彳」部（雙人旁），本義與行走尋得有關。'
+          },
+          {
+            id: 'u5_10',
+            targetWord: '得意忘形',
+            targetChar: '忘',
+            category: '課文詞語部首辨別',
+            question: '請辨別「忘」字的部首：',
+            options: ['A. 心部', 'B. 亡部', 'C. 言部'],
+            answer: 0,
+            explanation: '「忘」下邊是「心」部，因為記憶與遺忘都屬於心理活動。'
+          },
+          {
+            id: 'u5_11',
+            targetWord: '得意忘形',
+            targetChar: '形',
+            category: '課文詞語部首辨別',
+            question: '請辨別「形」字的部首：',
+            options: ['A. 彡部', 'B. 开部', 'C. 彳部'],
+            answer: 0,
+            explanation: '「形」右邊是「彡」部（三撇），多與外貌、形狀、紋飾有關。'
+          },
+          {
+            id: 'u5_12',
+            targetWord: '堅固',
+            targetChar: '堅',
+            category: '課文詞語部首辨別',
+            question: '請辨別「堅」字的部首：',
+            options: ['A. 土部', 'B. 又部', 'C. 囗部'],
+            answer: 0,
+            explanation: '「堅」下邊是「土」部，本義指泥土結實堅硬。'
+          },
+          {
+            id: 'u5_13',
+            targetWord: '堅固',
+            targetChar: '固',
+            category: '課文詞語部首辨別',
+            question: '請辨別「固」字的部首：',
+            options: ['A. 囗部（大口框）', 'B. 土部', 'C. 古部'],
+            answer: 0,
+            explanation: '「固」外框是「囗」部（大口框），表示四面圍繞、結實牢固。'
+          },
+          {
+            id: 'u5_14',
+            targetWord: '圍觀',
+            targetChar: '觀',
+            category: '課文詞語部首辨別',
+            question: '請辨別「觀」字的部首：',
+            options: ['A. 見部', 'B. 囗部', 'C. 目部'],
+            answer: 0,
+            explanation: '「觀」右邊是「見」部，與眼睛觀看、察看有關。'
+          },
+          {
+            id: 'u5_15',
+            targetWord: '刺穿',
+            targetChar: '刺',
+            category: '課文詞語部首辨別',
+            question: '請辨別「刺」字的部首：',
+            options: ['A. 刀部（刂）', 'B. 木部', 'C. 穴部'],
+            answer: 0,
+            explanation: '「刺」右邊是「刂」（刀部），表示用尖銳利器刺入物體。'
+          },
+          {
+            id: 'u5_16',
+            targetWord: '刺穿',
+            targetChar: '穿',
+            category: '課文詞語部首辨別',
+            question: '請辨別「穿」字的部首：',
+            options: ['A. 穴部', 'B. 牙部', 'C. 宀部'],
+            answer: 0,
+            explanation: '「穿」上邊是「穴」部，本義是在洞穴或物體中鑿通、穿過。'
+          },
+          {
+            id: 'u5_17',
+            targetWord: '分別',
+            targetChar: '別',
+            category: '課文詞語部首辨別',
+            question: '請辨別「別」字的部首：',
+            options: ['A. 刀部（刂）', 'B. 口部', 'C. 力部'],
+            answer: 0,
+            explanation: '「別」右邊是「刂」（刀部），本義是用刀把骨肉分開。'
+          },
+          {
+            id: 'u5_18',
+            targetWord: '削鉛筆',
+            targetChar: '削',
+            category: '課文詞語部首辨別',
+            question: '請辨別「削」字的部首：',
+            options: ['A. 刀部（刂）', 'B. 月部', 'C. 小部'],
+            answer: 0,
+            explanation: '「削」右邊是「刂」（刀部），表示用小刀斜着刮去物體表層。'
+          }
+        ]
+      }
+    ];
+
+    // 練習六設定（全單元綜合挑戰）
+    const MIXED_UNIT_META = {
+      id: 'u6',
+      shortTitle: '練習六',
+      title: '練習六：全單元綜合挑戰（隨機抽選 10 題）',
+      subtitle: '混合課文理解、詞語、詞語部首、重疊動詞與實用閱讀，測試全面實力！',
+      icon: '🏆',
+      color: 'from-rose-500 to-pink-600',
+      badgeBg: 'bg-rose-100 text-rose-800',
+      border: 'border-rose-300'
+    };
+
+    // 綜合挑戰額外擴充題庫（使全單元總題庫達 44 題）
+    const BONUS_POOL_QUESTIONS = [
+      {
+        id: 'bonus_1',
+        category: '詞語理解',
+        question: '小販誇口說自己的矛能刺穿任何堅固的盾，又說自己的盾能擋住最鋒利的矛，這正是哪個成語的意思？',
+        options: ['A. 自相矛盾', 'B. 守株待兔', 'C. 畫蛇添足'],
+        answer: 0,
+        explanation: '小販說的話前後互相抵觸，這正是成語「自相矛盾」的由來與意思。'
+      },
+      {
+        id: 'bonus_2',
+        category: '部首「刀(刂)」',
+        question: '下列哪一組字的部首全部都是「刀(刂)」部？',
+        options: ['A. 刺、別、分', 'B. 矛、盾、堅', 'C. 鋒、利、銳'],
+        answer: 0,
+        explanation: '「刺」和「別」的右邊是「刂」（刀部），「分」的下邊是「刀」（刀部），三個字都屬於刀部。'
+      },
+      {
+        id: 'bonus_3',
+        category: '重疊的動詞',
+        question: '姐姐跟弟弟說：「這些蛋糕真美味，你也來（　　）。」',
+        options: ['A. 嚐一嚐', 'B. 敲一敲', 'C. 抹一抹'],
+        answer: 0,
+        explanation: '邀請別人試吃美味的蛋糕，應該用表示嘗試一下的「嚐一嚐」。'
+      },
+      {
+        id: 'bonus_4',
+        category: '實用閱讀理解',
+        hasWeatherChart: true,
+        question: '比較 9月23日(六) 與 9月24日(日) 的香港天氣預報，哪一天的降雨概率較低？',
+        options: ['A. 9月24日(日)（低）', 'B. 9月23日(六)（中低）', 'C. 兩天完全一樣'],
+        answer: 0,
+        explanation: '查看圖表：9月23日(六)降雨概率為「中低」，而 9月24日(日)降雨概率為「低」，所以 9月24日(日)降雨概率較低。'
+      }
+    ];
+
+    // Fisher-Yates 洗牌演算法：隨機打亂每題選項順序並重新編配 A/B/C 標籤
+    function shuffleQuestionOptions(question) {
+      const letters = ['A', 'B', 'C', 'D'];
+      const optionPairs = question.options.map((optStr, idx) => ({
+        cleanText: optStr.replace(/^[A-Z]\.\s*/, ''),
+        isCorrect: idx === question.answer
+      }));
+
+      for (let i = optionPairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [optionPairs[i], optionPairs[j]] = [optionPairs[j], optionPairs[i]];
+      }
+
+      const shuffledOptions = optionPairs.map((item, newIdx) => `${letters[newIdx]}. ${item.cleanText}`);
+      const newAnswerIndex = optionPairs.findIndex(item => item.isCorrect);
+
+      return {
+        ...question,
+        options: shuffledOptions,
+        answer: newAnswerIndex
+      };
+    }
+
+    // ==================== 4. 應用程式狀態 ====================
+    const TEACHER_PASSWORD = '534534';
+
+    const state = {
+      view: 'HOME', // 'HOME' | 'STUDENT_HUB' | 'QUIZ' | 'RESULT' | 'TEACHER'
+      currentStudent: null,
+      activeUnit: null,
+      quizQuestions: [],
+      currentIndex: 0,
+      userAnswers: [], // 儲存每題學生選擇的 option index (0, 1, 2)
+      selectedOptionTemp: null, // 當前題目已點選但未按下一題的選項
+      hasAnsweredCurrent: false,
+      lastResultRecord: null,
+      resultFilterMode: 'WRONG_ONLY', // 'WRONG_ONLY' | 'ALL'
+      teacherFilterStudent: 'ALL',
+      teacherFilterUnit: 'ALL',
+      isTeacherUnlocked: false
+    };
+
+    // ==================== 5. 音效與粵語語音朗讀 (Web Audio & Web Speech API) ====================
+    function playSoundEffect(type) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        if (type === 'correct') {
+          // 輕快雙音提示 (C5 -> E5)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else if (type === 'wrong') {
+          // 溫和低音提示
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.setValueAtTime(200, now + 0.14);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else if (type === 'finish') {
+          // 完成練習歡呼三音 (C5 -> E5 -> G5 -> C6)
+          const freqs = [523.25, 659.25, 783.99, 1046.5];
+          freqs.forEach((f, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, now + idx * 0.11);
+            gain.gain.setValueAtTime(0.14, now + idx * 0.11);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.11);
+            osc.stop(now + idx * 0.11 + 0.32);
+          });
+        }
+      } catch (e) {
+        // 忽略瀏覽器音效限制錯誤
+      }
+    }
+
+    let currentSpeakingBtn = null;
+
+    function speakCantonese(text, btnElement = null) {
+      if (!('speechSynthesis' in window)) {
+        showToast('此瀏覽器暫不支援語音朗讀功能', '⚠️');
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      if (currentSpeakingBtn) {
+        currentSpeakingBtn.classList.remove('speaking-active');
+        currentSpeakingBtn = null;
+      }
+
+      // 清理括號內空白讓朗讀更自然
+      const cleanText = text.replace(/（\s*）/g, '，甚麼，').replace(/\(\s*\)/g, '，甚麼，');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'zh-HK';
+      utterance.rate = 0.92; // 略為放慢語速，適合小學生聆聽
+
+      // 尋找香港粵語語音
+      const voices = window.speechSynthesis.getVoices();
+      const hkVoice = voices.find(v => v.lang === 'zh-HK' || v.lang === 'yue-Hant-HK')
+        || voices.find(v => v.lang.includes('HK'))
+        || voices.find(v => v.lang.includes('zh'));
+      if (hkVoice) {
+        utterance.voice = hkVoice;
+      }
+
+      if (btnElement) {
+        btnElement.classList.add('speaking-active');
+        currentSpeakingBtn = btnElement;
+      }
+
+      utterance.onend = () => {
+        if (currentSpeakingBtn) {
+          currentSpeakingBtn.classList.remove('speaking-active');
+          currentSpeakingBtn = null;
+        }
+      };
+      utterance.onerror = () => {
+        if (currentSpeakingBtn) {
+          currentSpeakingBtn.classList.remove('speaking-active');
+          currentSpeakingBtn = null;
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 預先載入語音清單
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // ==================== 6. 輔助與資料統計函式 ====================
+    function getAllRecords() {
+      return (window.cloudStore && Array.isArray(window.cloudStore.records)) ? window.cloudStore.records : [];
+    }
+
+    function getStudentStats(studentName) {
+      const records = getAllRecords().filter(r => r.studentName === studentName);
+      const count = records.length;
+      const bestScore = count > 0 ? Math.max(...records.map(r => r.score || 0)) : null;
+      return { count, bestScore, records };
+    }
+
+    function formatHKDateTime(ts) {
+      const d = new Date(ts);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+    }
+
+    function showToast(text, icon = '✅') {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastText').textContent = text;
+      document.getElementById('toastIcon').textContent = icon;
+      toast.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+      });
+      setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 2800);
+    }
+
+    // 自訂確認對話框（絕不使用 window.confirm）
+    function showCustomConfirm({ icon = '⚠️', title, message, confirmText = '確定', cancelText = '取消', confirmColor = 'bg-rose-600 hover:bg-rose-700 border-rose-800', onConfirm }) {
+      const modal = document.getElementById('customDialogModal');
+      document.getElementById('dialogIcon').textContent = icon;
+      document.getElementById('dialogTitle').textContent = title;
+      document.getElementById('dialogMessage').textContent = message;
+
+      const btnWrap = document.getElementById('dialogButtons');
+      btnWrap.innerHTML = '';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-tactile px-5 py-2.5 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold border-b-4 border-slate-400';
+      cancelBtn.textContent = cancelText;
+      cancelBtn.onclick = () => modal.classList.add('hidden');
+
+      const okBtn = document.createElement('button');
+      okBtn.className = `btn-tactile px-5 py-2.5 rounded-2xl text-white font-bold border-b-4 ${confirmColor}`;
+      okBtn.textContent = confirmText;
+      okBtn.onclick = () => {
+        modal.classList.add('hidden');
+        if (onConfirm) onConfirm();
+      };
+
+      btnWrap.appendChild(cancelBtn);
+      btnWrap.appendChild(okBtn);
+      modal.classList.remove('hidden');
+    }
+
+    // 生成香港天文台《香港九天天氣預報》HTML 卡片（供題目及溫習筆記共用）
+    function renderWeatherChartHTML(compact = false) {
+      return `
+        <div class="bg-white rounded-2xl border-2 border-sky-300 shadow-sm overflow-hidden my-3">
+          <div class="bg-gradient-to-r from-sky-700 to-blue-800 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🌤️</span>
+              <span class="font-bold text-sm sm:text-base">香港天文台 — 香港九天天氣預報（節錄）</span>
+            </div>
+            <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full">實用閱讀資料</span>
+          </div>
+          <div class="p-3 sm:p-4 bg-sky-50/70 border-b border-sky-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <span class="font-bold text-sky-900">天氣概況：</span>${STUDY_DATA.weatherSummary}
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-sky-200">
+            ${STUDY_DATA.weatherDays.map(d => `
+              <div class="p-3 flex flex-col items-center text-center bg-white hover:bg-sky-50/40 transition">
+                <div class="font-black text-slate-800 text-sm sm:text-base">${d.date} <span class="text-sky-700">${d.day}</span></div>
+                <div class="text-3xl my-1.5">${d.icon}</div>
+                <div class="font-black text-base sm:text-lg text-rose-600">${d.temp}</div>
+                <div class="text-xs font-bold text-sky-700 mt-0.5">濕度：${d.humidity}</div>
+                <div class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold">
+                  <span>☂️ 降雨概率：${d.rainProb}</span>
+                </div>
+                <div class="text-xs text-slate-600 mt-2 font-medium">${d.wind}</div>
+                <div class="text-xs text-slate-700 mt-1.5 leading-snug bg-slate-50 p-2 rounded-xl w-full">${d.desc}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== 7. 視圖切換與渲染 ====================
+    window.refreshCurrentView = function() {
+      renderApp();
+    };
+
+    function goHome() {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      state.view = 'HOME';
+      state.currentStudent = null;
+      state.activeUnit = null;
+      state.isTeacherUnlocked = false;
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // 老師成績紀錄密碼驗證與上鎖控制
+    function requestTeacherAccess() {
+      if (state.isTeacherUnlocked) {
+        openTeacherDashboard();
+        return;
+      }
+      const modal = document.getElementById('teacherPasswordModal');
+      const input = document.getElementById('teacherPasswordInput');
+      const errorBox = document.getElementById('teacherPasswordError');
+      if (!modal || !input) return;
+
+      input.value = '';
+      input.type = 'password';
+      errorBox.classList.add('hidden');
+      modal.classList.remove('hidden');
+      setTimeout(() => input.focus(), 80);
+    }
+
+    function closeTeacherPasswordModal() {
+      const modal = document.getElementById('teacherPasswordModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function appendTeacherDigit(digit) {
+      const input = document.getElementById('teacherPasswordInput');
+      const errorBox = document.getElementById('teacherPasswordError');
+      if (!input) return;
+      if (input.value.length < 10) {
+        input.value += digit;
+      }
+      if (errorBox) errorBox.classList.add('hidden');
+    }
+
+    function backspaceTeacherDigit() {
+      const input = document.getElementById('teacherPasswordInput');
+      const errorBox = document.getElementById('teacherPasswordError');
+      if (!input) return;
+      input.value = input.value.slice(0, -1);
+      if (errorBox) errorBox.classList.add('hidden');
+    }
+
+    function clearTeacherDigit() {
+      const input = document.getElementById('teacherPasswordInput');
+      const errorBox = document.getElementById('teacherPasswordError');
+      if (!input) return;
+      input.value = '';
+      if (errorBox) errorBox.classList.add('hidden');
+    }
+
+    function toggleTeacherPwdVisibility() {
+      const input = document.getElementById('teacherPasswordInput');
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function verifyTeacherPassword() {
+      const input = document.getElementById('teacherPasswordInput');
+      const errorBox = document.getElementById('teacherPasswordError');
+      const card = document.getElementById('teacherPasswordCard');
+      if (!input) return;
+
+      if (input.value.trim() === TEACHER_PASSWORD) {
+        state.isTeacherUnlocked = true;
+        closeTeacherPasswordModal();
+        showToast('密碼正確，已進入老師成績紀錄', '🔓');
+        openTeacherDashboard();
+      } else {
+        if (errorBox) errorBox.classList.remove('hidden');
+        if (card) {
+          card.classList.remove('animate-shake');
+          void card.offsetWidth;
+          card.classList.add('animate-shake');
+        }
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function lockAndGoHome() {
+      state.isTeacherUnlocked = false;
+      showToast('已重新上鎖老師成績紀錄', '🔒');
+      goHome();
+    }
+
+    function openTeacherDashboard() {
+      if (!state.isTeacherUnlocked) {
+        requestTeacherAccess();
+        return;
+      }
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      state.view = 'TEACHER';
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 選擇學生進入個人學習主頁
+    function selectStudent(studentName) {
+      const found = STUDENTS.find(s => s.name === studentName);
+      if (!found) return;
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      state.currentStudent = found;
+      state.view = 'STUDENT_HUB';
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 開始指定單元練習（固定 10 題，並隨機打亂選項順序）
+    function startPractice(unitId) {
+      if (!state.currentStudent) {
+        goHome();
+        return;
+      }
+      window.speechSynthesis && window.speechSynthesis.cancel();
+
+      let selectedUnit = null;
+      let rawQuestions = [];
+
+      if (unitId === 'u6') {
+        selectedUnit = MIXED_UNIT_META;
+        const allPool = [
+          ...PRACTICE_UNITS.flatMap(u => u.questions),
+          ...BONUS_POOL_QUESTIONS
+        ];
+        // Fisher-Yates 隨機抽取 10 題
+        const shuffledPool = [...allPool];
+        for (let i = shuffledPool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
+        }
+        rawQuestions = shuffledPool.slice(0, 10);
+      } else if (unitId === 'u5') {
+        selectedUnit = PRACTICE_UNITS.find(u => u.id === 'u5');
+        if (!selectedUnit) return;
+        // 從課文詞語部首題庫隨機抽取 10 題
+        const shuffledU5 = [...selectedUnit.questions];
+        for (let i = shuffledU5.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledU5[i], shuffledU5[j]] = [shuffledU5[j], shuffledU5[i]];
+        }
+        rawQuestions = shuffledU5.slice(0, 10);
+      } else {
+        selectedUnit = PRACTICE_UNITS.find(u => u.id === unitId);
+        if (!selectedUnit) return;
+        rawQuestions = [...selectedUnit.questions];
+      }
+
+      // 每次開始皆隨機洗牌每道題目的選項順序（A/B/C 隨機排列）
+      state.activeUnit = selectedUnit;
+      state.quizQuestions = rawQuestions.map(q => shuffleQuestionOptions(q));
+      state.currentIndex = 0;
+      state.userAnswers = [];
+      state.selectedOptionTemp = null;
+      state.hasAnsweredCurrent = false;
+      state.view = 'QUIZ';
+
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderApp() {
+      const container = document.getElementById('appContainer');
+      if (!container) return;
+
+      if (state.view === 'HOME') {
+        container.innerHTML = renderHomeView();
+      } else if (state.view === 'STUDENT_HUB') {
+        container.innerHTML = renderStudentHubView();
+      } else if (state.view === 'QUIZ') {
+        container.innerHTML = renderQuizView();
+      } else if (state.view === 'RESULT') {
+        container.innerHTML = renderResultView();
+      } else if (state.view === 'TEACHER') {
+        container.innerHTML = renderTeacherView();
+      }
+    }
+
+    // -------------------- 視圖 A：首頁（選擇學生姓名） --------------------
+    function renderHomeView() {
+      const allRecords = getAllRecords();
+      const totalAttempts = allRecords.length;
+      return `
+        <div class="space-y-6">
+          <!-- 歡迎橫幅 -->
+          <section class="bg-gradient-to-r from-amber-100 via-orange-50 to-sky-100 rounded-3xl p-5 sm:p-7 border-2 border-amber-300 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
+            <div class="space-y-2.5 text-center md:text-left">
+              <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 text-amber-800 font-bold text-xs sm:text-sm shadow-2xs">
+                  🎯 小學中文科 • 成語故事與語文應用
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs sm:text-sm shadow-2xs">
+                  ✅ 完全免登入 • 點選姓名即開始
+                </span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-800 leading-tight">
+                歡迎來到《自相矛盾》互動練習樂園！
+              </h2>
+              <p class="text-sm sm:text-base text-slate-600 font-medium">
+                請先點選<strong>你自己的姓名</strong>進入練習區，每份練習共 <strong>10 題</strong>，完成後會自動記錄分數並顯示錯題分析！
+              </p>
+            </div>
+            <div class="flex flex-col items-center gap-2 shrink-0 bg-white/85 px-5 py-4 rounded-2xl border border-amber-200 shadow-2xs">
+              <div class="text-xs font-bold text-slate-500">全班累計完成練習</div>
+              <div class="text-3xl font-black text-amber-600">${totalAttempts} <span class="text-sm font-bold text-slate-600">次</span></div>
+              <button onclick="openStudyModal('text')" class="mt-1 text-xs font-black text-sky-700 hover:text-sky-900 underline">
+                📖 先溫習課文與詞語 →
+              </button>
+            </div>
+          </section>
+
+          <!-- 學生點名選擇區（14 位學生） -->
+          <section class="bg-white rounded-3xl p-5 sm:p-7 border-2 border-amber-200 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-amber-100 pb-3">
+              <h3 class="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2">
+                <span>🙋‍♂️</span>
+                <span>第一步：請點選你的姓名</span>
+              </h3>
+              <span class="text-xs sm:text-sm font-bold text-slate-500">共 ${STUDENTS.length} 位同學</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+              ${STUDENTS.map(stu => {
+                const stats = getStudentStats(stu.name);
+                return `
+                  <button
+                    type="button"
+                    onclick="selectStudent('${stu.name}')"
+                    class="btn-tactile relative bg-gradient-to-br ${stu.bg} hover:brightness-98 rounded-3xl p-4 border-2 border-b-4 ${stu.border} flex flex-col items-center text-center gap-2 shadow-2xs focus:outline-none"
+                  >
+                    ${stu.isTest ? `
+                      <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black">
+                        測試專用
+                      </span>
+                    ` : ''}
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/90 flex items-center justify-center text-3xl sm:text-4xl shadow-2xs border border-white">
+                      ${stu.avatar}
+                    </div>
+                    <div class="text-lg sm:text-xl font-black text-slate-800 tracking-wide">${stu.name}</div>
+                    <div class="w-full pt-1 border-t border-black/5 flex flex-col gap-1 text-xs font-bold">
+                      <span class="text-slate-600">已完成：${stats.count} 次</span>
+                      ${stats.bestScore !== null
+                        ? `<span class="inline-block px-2 py-0.5 rounded-full ${stu.badge} text-white font-black">最高 ${stats.bestScore} 分</span>`
+                        : `<span class="inline-block px-2 py-0.5 rounded-full bg-white/80 text-slate-500">尚未練習</span>`
+                      }
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    // -------------------- 視圖 B：學生個人練習主頁（選擇 6 大練習單元） --------------------
+    function renderStudentHubView() {
+      const stu = state.currentStudent;
+      if (!stu) return renderHomeView();
+
+      const stats = getStudentStats(stu.name);
+      const allUnits = [...PRACTICE_UNITS, MIXED_UNIT_META];
+
+      return `
+        <div class="space-y-6">
+          <!-- 學生個人資料與返回切換列 -->
+          <section class="bg-gradient-to-r ${stu.bg} rounded-3xl p-5 sm:p-6 border-2 ${stu.border} shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white flex items-center justify-center text-4xl sm:text-5xl shadow-sm border-2 border-white">
+                ${stu.avatar}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full ${stu.badge} text-white text-xs font-black">學生專區</span>
+                  <span class="text-xs font-bold text-slate-600">免登入自動記分</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">${stu.name} 同學，你好！</h2>
+                <p class="text-xs sm:text-sm font-bold text-slate-600 mt-0.5">
+                  已練習 <span class="text-indigo-700 font-black">${stats.count}</span> 次 ｜
+                  個人最高分：<span class="text-emerald-700 font-black">${stats.bestScore !== null ? stats.bestScore + ' 分' : '尚無紀錄'}</span>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onclick="goHome()"
+              class="btn-tactile px-5 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-black text-sm sm:text-base border-2 border-slate-300 border-b-4 shrink-0"
+            >
+              🔄 切換其他學生
+            </button>
+          </section>
+
+          <!-- 六大練習單元選擇區 -->
+          <section class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2">
+                <span>📚</span>
+                <span>第二步：請選擇要挑戰的練習（每份 10 題）</span>
+              </h3>
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800">🔀 每次練習皆自動隨機排列選項</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${allUnits.map(unit => {
+                const unitRecords = stats.records.filter(r => r.unitId === unit.id);
+                const unitBest = unitRecords.length > 0 ? Math.max(...unitRecords.map(r => r.score || 0)) : null;
+
+                return `
+                  <div class="bg-white rounded-3xl p-5 border-2 ${unit.border} shadow-sm flex flex-col justify-between gap-4 hover:shadow-md transition">
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="px-3 py-1 rounded-full ${unit.badgeBg} text-xs font-black">${unit.shortTitle} • 共 10 題</span>
+                        ${unitBest !== null
+                          ? `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">最高 ${unitBest} 分（已做 ${unitRecords.length} 次）</span>`
+                          : `<span class="text-xs font-bold text-slate-400">尚未挑戰</span>`
+                        }
+                      </div>
+                      <h4 class="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2">
+                        <span class="text-2xl">${unit.icon}</span>
+                        <span>${unit.title}</span>
+                      </h4>
+                      <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">${unit.subtitle}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onclick="startPractice('${unit.id}')"
+                      class="btn-tactile w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r ${unit.color} text-white font-black text-base sm:text-lg shadow-sm border-b-4 border-black/20 flex items-center justify-center gap-2"
+                    >
+                      <span>🚀 開始練習（10 題）</span>
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </section>
+
+          <!-- 個人最近練習紀錄 -->
+          ${stats.records.length > 0 ? `
+            <section class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm space-y-3">
+              <h4 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>🏅</span>
+                <span>${stu.name} 的歷次成績紀錄（最近 5 次）</span>
+              </h4>
+              <div class="divide-y divide-slate-100">
+                ${stats.records.slice(0, 5).map(r => `
+                  <div class="py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <div>
+                      <span class="font-black text-slate-800">${r.unitTitle}</span>
+                      <span class="text-xs text-slate-500 ml-2">${r.dateStr || formatHKDateTime(r.timestamp)}</span>
+                    </div>
+                    <span class="px-3 py-1 rounded-full font-black text-xs ${r.score >= 80 ? 'bg-emerald-100 text-emerald-800' : r.score >= 60 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">
+                      ${r.score} 分（對 ${r.correctCount}/10 題）
+                    </span>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // -------------------- 視圖 C：互動答題畫面（固定 10 題） --------------------
+    function renderQuizView() {
+      if (!state.currentStudent || !state.activeUnit || !state.quizQuestions.length) {
+        return renderHomeView();
+      }
+
+      const stu = state.currentStudent;
+      const unit = state.activeUnit;
+      const q = state.quizQuestions[state.currentIndex];
+      const total = state.quizQuestions.length;
+      const answeredCount = state.currentIndex + (state.hasAnsweredCurrent ? 1 : 0);
+      const progressPct = Math.round((answeredCount / total) * 100);
+      const currentScore = state.userAnswers.reduce((sum, ans, idx) => {
+        return sum + (ans === state.quizQuestions[idx]?.answer ? 10 : 0);
+      }, 0);
+      const fullReadText = `第${state.currentIndex + 1}題。${q.question}。${q.options.join('。')}`;
+
+      return `
+        <div class="max-w-4xl mx-auto space-y-5">
+          <!-- 頂部狀態與進度條卡片 -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border-2 border-amber-200 shadow-sm space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-2xl">${stu.avatar}</span>
+                <div>
+                  <div class="text-xs font-bold text-slate-500">${stu.name} 正在作答</div>
+                  <div class="text-sm sm:text-base font-black text-slate-800">${unit.title}</div>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs sm:text-sm font-black">
+                  ⭐ 目前得分：${currentScore} 分
+                </span>
+                <span class="hidden sm:inline-block px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
+                  🔀 選項已隨機排列
+                </span>
+                <button
+                  type="button"
+                  onclick="confirmExitQuiz()"
+                  class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 font-bold text-xs sm:text-sm transition"
+                >
+                  ✕ 退出
+                </button>
+              </div>
+            </div>
+
+            <!-- 進度條 -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-black text-slate-600">
+                <span>作答進度：第 ${state.currentIndex + 1} 題 / 共 ${total} 題</span>
+                <span>${progressPct}%</span>
+              </div>
+              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300 rounded-full" style="width: ${progressPct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 題目主卡片 -->
+          <div class="bg-white rounded-3xl p-5 sm:p-7 border-2 border-sky-200 shadow-sm space-y-5">
+            <!-- 題型分類標籤與粵語朗讀按鈕 -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="px-3 py-1 rounded-full ${unit.badgeBg} text-xs sm:text-sm font-black">
+                📌 ${q.category}
+              </span>
+
+              <button
+                type="button"
+                onclick="speakCantonese(\`${escapeForAttr(fullReadText)}\`, this)"
+                class="btn-tactile inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-sm sm:text-base border-b-2 border-blue-300"
+              >
+                <span>🔊</span>
+                <span>粵語朗讀題目</span>
+              </button>
+            </div>
+
+            <!-- 實用閱讀天氣預報圖表（如該題需要） -->
+            ${q.hasWeatherChart ? renderWeatherChartHTML(true) : ''}
+
+            <!-- 詞語情境插畫輔助 -->
+            ${q.vocabKey ? renderVocabIllustrationHTML(q.vocabKey, true) : ''}
+            ${!q.vocabKey && q.targetWord && VOCAB_ILLUSTRATIONS[q.targetWord] ? renderVocabIllustrationHTML(q.targetWord, true) : ''}
+
+            <!-- 練習五目標生字展示卡 -->
+            ${q.targetWord ? `
+              <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 border-2 border-cyan-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="px-3 py-1 rounded-xl bg-cyan-600 text-white text-xs sm:text-sm font-black">課文詞語</span>
+                  <div class="text-2xl sm:text-3xl font-black tracking-widest text-slate-800 flex items-center gap-1">
+                    <span>【</span>
+                    ${Array.from(q.targetWord).map(ch =>
+                      ch === q.targetChar
+                        ? `<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-xl bg-amber-300 text-slate-900 border-2 border-amber-500 shadow-2xs">${ch}</span>`
+                        : `<span>${ch}</span>`
+                    ).join('')}
+                    <span>】</span>
+                  </div>
+                </div>
+                <span class="text-xs sm:text-sm font-bold text-indigo-700 bg-white px-3 py-1 rounded-full border border-indigo-200">
+                  目標生字：「${q.targetChar}」
+                </span>
+              </div>
+            ` : ''}
+
+            <!-- 題幹文字 -->
+            <h3 class="text-xl sm:text-2xl font-black text-slate-800 leading-relaxed">
+              ${state.currentIndex + 1}. ${q.question}
+            </h3>
+
+            <!-- 選項按鈕 -->
+            <div class="space-y-3.5">
+              ${q.options.map((optText, idx) => {
+                let cardStyle = 'bg-slate-50 hover:bg-amber-50 border-slate-300 text-slate-800';
+                let statusBadge = '';
+
+                if (state.hasAnsweredCurrent) {
+                  if (idx === q.answer) {
+                    cardStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-300';
+                    statusBadge = '<span class="px-2.5 py-1 rounded-xl bg-emerald-500 text-white text-xs sm:text-sm font-black shrink-0">✅ 正確答案</span>';
+                  } else if (idx === state.selectedOptionTemp && idx !== q.answer) {
+                    cardStyle = 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-300';
+                    statusBadge = '<span class="px-2.5 py-1 rounded-xl bg-rose-500 text-white text-xs sm:text-sm font-black shrink-0">❌ 你的選擇</span>';
+                  } else {
+                    cardStyle = 'bg-slate-50 border-slate-200 text-slate-400 opacity-70';
+                  }
+                }
+
+                return `
+                  <div
+                    onclick="handleOptionSelect(${idx})"
+                    role="button"
+                    tabindex="0"
+                    class="btn-tactile w-full p-4 sm:p-5 rounded-2xl border-2 border-b-4 ${cardStyle} flex items-center justify-between gap-3 cursor-pointer select-none"
+                  >
+                    <span class="text-lg sm:text-xl font-bold leading-snug text-left flex-1">${optText}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      ${statusBadge}
+                      <button
+                        type="button"
+                        onclick="event.stopPropagation(); speakCantonese(\`${escapeForAttr(optText)}\`, this)"
+                        title="朗讀此選項"
+                        class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-sky-100 text-slate-700 flex items-center justify-center text-lg shadow-2xs"
+                      >
+                        🔊
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- 即時作答回饋與解析提示 -->
+            ${state.hasAnsweredCurrent ? `
+              <div class="p-4 sm:p-5 rounded-2xl border-2 ${state.selectedOptionTemp === q.answer ? 'bg-emerald-50/90 border-emerald-300' : 'bg-amber-50 border-amber-300'} space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="font-black text-base sm:text-lg ${state.selectedOptionTemp === q.answer ? 'text-emerald-800' : 'text-rose-700'}">
+                    ${state.selectedOptionTemp === q.answer ? '🎉 答對了！做得好！' : '💡 差一點點！看看老師解析：'}
+                  </div>
+                  <button
+                    type="button"
+                    onclick="speakCantonese(\`${escapeForAttr(q.explanation)}\`, this)"
+                    class="px-3 py-1 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-sky-50"
+                  >
+                    🔊 聽解析
+                  </button>
+                </div>
+                <p class="text-slate-700 text-sm sm:text-base leading-relaxed">
+                  ${q.explanation}
+                </p>
+              </div>
+            ` : ''}
+
+            <!-- 底部操作按鈕 -->
+            <div class="pt-2 flex justify-end">
+              ${state.hasAnsweredCurrent ? `
+                <button
+                  type="button"
+                  onclick="goToNextQuestion()"
+                  class="btn-tactile w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-lg shadow-md border-b-4 border-indigo-900 flex items-center justify-center gap-2"
+                >
+                  <span>${state.currentIndex < total - 1 ? '下一題' : '完成練習，查看分數與錯題分析'}</span>
+                  <span>➡️</span>
+                </button>
+              ` : `
+                <div class="text-sm font-bold text-slate-400">👆 請點選上方其中一個答案選項</div>
+              `}
+            </div>
+
+            <!-- 練習五每題最尾部分：免登入即時部首智能分析按鈕 -->
+            ${unit.id === 'u5' && q.targetWord ? `
+              <div class="pt-4 border-t-2 border-dashed border-cyan-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 p-4 rounded-2xl">
+                <div class="text-center sm:text-left">
+                  <div class="text-xs font-black text-cyan-800">🤖 AI 部首小助手（無需登入 Gmail • 點擊即時查看）</div>
+                  <div class="text-xs text-slate-600 mt-0.5">想進一步認識「<strong class="text-indigo-700">${q.targetWord}</strong>」每個字的部首、筆畫與字義？按右側按鈕即時分析！</div>
+                </div>
+                <button
+                  type="button"
+                  onclick="openLocalRadicalAnalyzer('${escapeForAttr(q.targetWord)}')"
+                  class="btn-tactile w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-700 hover:to-indigo-700 text-white font-black text-sm sm:text-base shadow-sm border-b-4 border-indigo-900"
+                >
+                  <span>🤖</span>
+                  <span>即時分析「${q.targetWord}」的部首（免登入）</span>
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeForAttr(str) {
+      return String(str).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/"/g, '&quot;');
+    }
+
+    function handleOptionSelect(optionIdx) {
+      if (state.hasAnsweredCurrent) return; // 已鎖定當前題目答案
+      const q = state.quizQuestions[state.currentIndex];
+      state.selectedOptionTemp = optionIdx;
+      state.hasAnsweredCurrent = true;
+      state.userAnswers[state.currentIndex] = optionIdx;
+
+      if (optionIdx === q.answer) {
+        playSoundEffect('correct');
+      } else {
+        playSoundEffect('wrong');
+      }
+      renderApp();
+    }
+
+    async function goToNextQuestion() {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      if (state.currentIndex < state.quizQuestions.length - 1) {
+        state.currentIndex++;
+        state.selectedOptionTemp = null;
+        state.hasAnsweredCurrent = false;
+        renderApp();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // 完成第 10 題，計算分數並儲存紀錄
+        await finishQuizAndSave();
+      }
+    }
+
+    async function finishQuizAndSave() {
+      playSoundEffect('finish');
+      const total = state.quizQuestions.length; // 10
+      let correctCount = 0;
+      const detailedItems = [];
+      const wrongQuestions = [];
+
+      state.quizQuestions.forEach((q, idx) => {
+        const chosenIdx = state.userAnswers[idx];
+        const isCorrect = chosenIdx === q.answer;
+        if (isCorrect) correctCount++;
+
+        const item = {
+          qNumber: idx + 1,
+          category: q.category,
+          targetWord: q.targetWord || null,
+          question: q.question,
+          userAnswerText: chosenIdx !== undefined ? q.options[chosenIdx] : '未作答',
+          correctAnswerText: q.options[q.answer],
+          isCorrect,
+          explanation: q.explanation,
+          hasWeatherChart: !!q.hasWeatherChart
+        };
+        detailedItems.push(item);
+        if (!isCorrect) {
+          wrongQuestions.push(item);
+        }
+      });
+
+      const score = correctCount * 10; // 每題 10 分，滿分 100 分
+      const now = Date.now();
+      const recordObj = {
+        studentName: state.currentStudent.name,
+        unitId: state.activeUnit.id,
+        unitTitle: state.activeUnit.title,
+        score,
+        correctCount,
+        totalQuestions: total,
+        timestamp: now,
+        dateStr: formatHKDateTime(now),
+        wrongQuestions,
+        detailedItems
+      };
+
+      state.lastResultRecord = recordObj;
+      state.resultFilterMode = wrongQuestions.length > 0 ? 'WRONG_ONLY' : 'ALL';
+      state.view = 'RESULT';
+
+      // 自動寫入資料庫
+      if (typeof window.saveQuizRecordToCloud === 'function') {
+        await window.saveQuizRecordToCloud(recordObj);
+      }
+
+      showToast(`已自動記錄 ${state.currentStudent.name} 的分數：${score} 分！`, '💾');
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function confirmExitQuiz() {
+      showCustomConfirm({
+        icon: '🚪',
+        title: '確定要退出練習嗎？',
+        message: '現在退出的話，本次尚未完成的作答進度將不會記錄分數喔！',
+        confirmText: '確定退出',
+        cancelText: '繼續作答',
+        onConfirm: () => {
+          state.view = 'STUDENT_HUB';
+          renderApp();
+        }
+      });
+    }
+
+    // -------------------- 視圖 D：成績結算與錯題分析報告 --------------------
+    function renderResultView() {
+      const rec = state.lastResultRecord;
+      if (!rec) return renderStudentHubView();
+
+      const stu = state.currentStudent;
+      let stars = '⭐⭐⭐';
+      let praise = '太厲害了！你完全掌握了這個單元的重點，繼續保持！';
+      let bannerBg = 'from-emerald-400 to-teal-600';
+
+      if (rec.score === 100) {
+        stars = '🏆⭐⭐⭐';
+        praise = '滿分 100 分！全數答對，你真是《自相矛盾》小博士！';
+      } else if (rec.score >= 80) {
+        stars = '⭐⭐⭐';
+        praise = '成績非常優秀！只要再看看下面的錯題分析，下次一定能拿 100 分！';
+      } else if (rec.score >= 60) {
+        stars = '⭐⭐';
+        praise = '表現不錯！已經合格了，快來看看錯題分析把不熟的地方弄明白吧！';
+        bannerBg = 'from-amber-400 to-orange-500';
+      } else {
+        stars = '⭐';
+        praise = '別灰心！多看幾次溫習筆記和下面的錯題分析，再挑戰一次一定會進步！';
+        bannerBg = 'from-rose-400 to-pink-600';
+      }
+
+      const itemsToShow = state.resultFilterMode === 'WRONG_ONLY'
+        ? rec.detailedItems.filter(i => !i.isCorrect)
+        : rec.detailedItems;
+
+      return `
+        <div class="max-w-4xl mx-auto space-y-6">
+          <!-- 總分與星級評價卡片（專屬成績證明卡，方便截圖交功課） -->
+          <div class="bg-white rounded-3xl overflow-hidden border-2 border-amber-200 shadow-md">
+            <div class="bg-gradient-to-r ${bannerBg} p-6 sm:p-8 text-white text-center space-y-2">
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <span class="inline-block px-3.5 py-1 rounded-full bg-white/25 text-xs sm:text-sm font-black">
+                  📸 專屬成績證明卡（可截圖交功課）
+                </span>
+                <span class="inline-block px-3.5 py-1 rounded-full bg-white/20 text-xs sm:text-sm font-bold">
+                  ✅ 已自動記錄 • ${rec.dateStr}
+                </span>
+              </div>
+              <div class="text-4xl sm:text-5xl pt-1">${stars}</div>
+              <h2 class="text-2xl sm:text-3xl font-black">
+                ${stu.avatar} ${stu.name} 同學 — ${rec.unitTitle}
+              </h2>
+              <div class="py-2">
+                <span class="text-5xl sm:text-6xl font-black tracking-tight">${rec.score}</span>
+                <span class="text-xl sm:text-2xl font-bold opacity-90"> / 100 分</span>
+              </div>
+              <p class="text-base sm:text-lg font-bold bg-black/15 inline-block px-4 py-1.5 rounded-2xl">
+                共 10 題，答對 ${rec.correctCount} 題，答錯 ${rec.wrongQuestions.length} 題
+              </p>
+              <p class="text-sm sm:text-base opacity-95 max-w-xl mx-auto pt-1">${praise}</p>
+            </div>
+
+            <!-- 操作按鈕列 -->
+            <div class="p-4 sm:p-5 bg-slate-50 flex flex-wrap items-center justify-center gap-3">
+              <button onclick="startPractice('${rec.unitId}')" class="btn-tactile px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm sm:text-base border-b-4 border-indigo-900">
+                🔄 再練習一次（重新隨機排列選項）
+              </button>
+              <button onclick="state.view='STUDENT_HUB'; renderApp();" class="btn-tactile px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm sm:text-base border-b-4 border-amber-700">
+                📚 選擇其他練習
+              </button>
+              <button onclick="goHome()" class="btn-tactile px-5 py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 font-black text-sm sm:text-base border-2 border-slate-300 border-b-4">
+                🏠 返回首頁切換學生
+              </button>
+            </div>
+          </div>
+
+          <!-- 錯題分析區塊 -->
+          <section class="bg-white rounded-3xl p-5 sm:p-7 border-2 border-sky-200 shadow-sm space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
+              <h3 class="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2">
+                <span>🔍</span>
+                <span>錯題分析與詳盡解析</span>
+              </h3>
+
+              <!-- 切換只看錯題 / 全部10題 -->
+              <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
+                <button
+                  onclick="state.resultFilterMode='WRONG_ONLY'; renderApp();"
+                  class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black transition ${state.resultFilterMode === 'WRONG_ONLY' ? 'bg-rose-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}"
+                >
+                  只看錯題 (${rec.wrongQuestions.length}題)
+                </button>
+                <button
+                  onclick="state.resultFilterMode='ALL'; renderApp();"
+                  class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black transition ${state.resultFilterMode === 'ALL' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}"
+                >
+                  全部 10 題解析
+                </button>
+              </div>
+            </div>
+
+            ${rec.wrongQuestions.length === 0 && state.resultFilterMode === 'WRONG_ONLY' ? `
+              <div class="text-center py-10 bg-emerald-50 rounded-3xl border-2 border-emerald-200 space-y-2">
+                <div class="text-5xl">🎊</div>
+                <h4 class="text-2xl font-black text-emerald-800">太棒了！全部 10 題都答對，沒有任何錯題！</h4>
+                <p class="text-emerald-700 text-sm sm:text-base">你可以點擊右上角「全部 10 題解析」重溫每一題的重點，或挑戰其他練習！</p>
+              </div>
+            ` : `
+              <div class="space-y-4">
+                ${itemsToShow.map(item => `
+                  <div class="rounded-2xl p-4 sm:p-5 border-2 ${item.isCorrect ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/40 border-rose-200'} space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-xl font-black text-xs sm:text-sm ${item.isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}">
+                          第 ${item.qNumber} 題 • ${item.isCorrect ? '答對' : '錯題'}
+                        </span>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-700">${item.category}</span>
+                      </div>
+                      <button
+                        onclick="speakCantonese(\`${escapeForAttr('第' + item.qNumber + '題。' + item.question + '。正確答案是' + item.correctAnswerText + '。' + item.explanation)}\`, this)"
+                        class="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-sky-50 text-xs font-bold text-slate-700"
+                      >
+                        🔊 朗讀解析
+                      </button>
+                    </div>
+
+                    <p class="text-base sm:text-lg font-black text-slate-800">${item.question}</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm sm:text-base">
+                      <div class="p-3 rounded-xl font-bold ${item.isCorrect ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'}">
+                        你的答案：${item.isCorrect ? '✅' : '❌'} ${item.userAnswerText}
+                      </div>
+                      <div class="p-3 rounded-xl font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        正確答案：✅ ${item.correctAnswerText}
+                      </div>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-950 text-sm sm:text-base leading-relaxed">
+                      <span class="font-black text-sky-700">💡 老師解析：</span>${item.explanation}
+                    </div>
+
+                    ${item.targetWord ? `
+                      <div class="pt-1 flex justify-end">
+                        <button
+                          type="button"
+                          onclick="openLocalRadicalAnalyzer('${escapeForAttr(item.targetWord)}')"
+                          class="btn-tactile inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-2xs"
+                        >
+                          <span>🤖</span>
+                          <span>即時分析「${item.targetWord}」的部首（免登入）</span>
+                        </button>
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </section>
+        </div>
+      `;
+    }
+
+    // -------------------- 視圖 E：老師成績紀錄總覽 --------------------
+    function renderTeacherView() {
+      if (!state.isTeacherUnlocked) {
+        return renderHomeView();
+      }
+      const allRecords = getAllRecords();
+      const filteredRecords = allRecords.filter(r => {
+        const matchStu = state.teacherFilterStudent === 'ALL' || r.studentName === state.teacherFilterStudent;
+        const matchUnit = state.teacherFilterUnit === 'ALL' || r.unitId === state.teacherFilterUnit;
+        return matchStu && matchUnit;
+      });
+
+      const avgScore = filteredRecords.length > 0
+        ? Math.round(filteredRecords.reduce((acc, cur) => acc + (cur.score || 0), 0) / filteredRecords.length)
+        : 0;
+      const activeStudentCount = new Set(allRecords.map(r => r.studentName)).size;
+
+      return `
+        <div class="space-y-6">
+          <!-- 頂部標題與鎖定返回 -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-indigo-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <span class="inline-block px-3 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">教師管理後台</span>
+                <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">🔓 已通過密碼驗證</span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-2">
+                <span>👩‍🏫</span>
+                <span>學生練習成績總覽</span>
+              </h2>
+              <p class="text-sm text-slate-600 mt-0.5">可按學生姓名或練習單元篩選成績、查看錯題詳情及匯出 CSV 成績表</p>
+            </div>
+            <button onclick="lockAndGoHome()" class="btn-tactile px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm sm:text-base border-b-4 border-black flex items-center gap-1.5">
+              <span>🔒</span>
+              <span>鎖定並返回</span>
+            </button>
+          </div>
+
+          <!-- 班級整體數據摘要 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white rounded-3xl p-5 border-2 border-indigo-100 shadow-xs flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-2xl">📝</div>
+              <div>
+                <div class="text-xs font-bold text-slate-500">符合條件作答次數</div>
+                <div class="text-2xl font-black text-slate-800">${filteredRecords.length} <span class="text-sm font-bold">次</span></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-3xl p-5 border-2 border-emerald-100 shadow-xs flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl">📈</div>
+              <div>
+                <div class="text-xs font-bold text-slate-500">平均分數（滿分100）</div>
+                <div class="text-2xl font-black text-emerald-700">${avgScore} <span class="text-sm font-bold">分</span></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-3xl p-5 border-2 border-amber-100 shadow-xs flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl">🧑‍🎓</div>
+              <div>
+                <div class="text-xs font-bold text-slate-500">已參與練習人數</div>
+                <div class="text-2xl font-black text-amber-700">${activeStudentCount} <span class="text-sm font-bold">/ 14 人</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 篩選與操作工具列 -->
+          <div class="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-end justify-between gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">按學生姓名篩選：</label>
+                  <select
+                    onchange="state.teacherFilterStudent=this.value; renderApp();"
+                    class="w-full px-4 py-2.5 rounded-2xl border-2 border-slate-300 bg-slate-50 font-bold text-slate-800 focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="ALL" ${state.teacherFilterStudent === 'ALL' ? 'selected' : ''}>全部學生（14人）</option>
+                    ${STUDENTS.map(s => `<option value="${s.name}" ${state.teacherFilterStudent === s.name ? 'selected' : ''}>${s.name}${s.isTest ? '（測試專用）' : ''}</option>`).join('')}
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">按練習單元篩選：</label>
+                  <select
+                    onchange="state.teacherFilterUnit=this.value; renderApp();"
+                    class="w-full px-4 py-2.5 rounded-2xl border-2 border-slate-300 bg-slate-50 font-bold text-slate-800 focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="ALL" ${state.teacherFilterUnit === 'ALL' ? 'selected' : ''}>全部練習單元</option>
+                    ${[...PRACTICE_UNITS, MIXED_UNIT_META].map(u => `<option value="${u.id}" ${state.teacherFilterUnit === u.id ? 'selected' : ''}>${u.title}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2.5">
+                <button
+                  onclick="exportRecordsToCSV()"
+                  class="btn-tactile px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm border-b-4 border-emerald-800 flex items-center gap-1.5"
+                >
+                  <span>📥</span>
+                  <span>匯出 CSV 成績表</span>
+                </button>
+                <button
+                  onclick="promptClearRecords()"
+                  class="btn-tactile px-4 py-2.5 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-sm border-b-4 border-rose-300 flex items-center gap-1.5"
+                >
+                  <span>🗑️</span>
+                  <span>清除測試紀錄</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 成績明細表格 -->
+            ${filteredRecords.length === 0 ? `
+              <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-slate-500 font-bold">
+                目前沒有符合篩選條件的作答紀錄。
+              </div>
+            ` : `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-100 text-slate-600 text-xs sm:text-sm">
+                      <th class="py-3 px-4 rounded-tl-xl">作答日期時間</th>
+                      <th class="py-3 px-4">學生姓名</th>
+                      <th class="py-3 px-4">練習單元</th>
+                      <th class="py-3 px-4">答對題數</th>
+                      <th class="py-3 px-4">得分</th>
+                      <th class="py-3 px-4 rounded-tr-xl text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-sm sm:text-base">
+                    ${filteredRecords.map(rec => `
+                      <tr class="hover:bg-indigo-50/40 transition">
+                        <td class="py-3 px-4 text-xs sm:text-sm text-slate-500 whitespace-nowrap">${rec.dateStr || formatHKDateTime(rec.timestamp)}</td>
+                        <td class="py-3 px-4 font-black text-slate-800 whitespace-nowrap">${rec.studentName}</td>
+                        <td class="py-3 px-4 font-bold text-slate-700">${rec.unitTitle}</td>
+                        <td class="py-3 px-4 font-bold text-slate-600 whitespace-nowrap">${rec.correctCount} / ${rec.totalQuestions || 10} 題</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                          <span class="px-3 py-1 rounded-full font-black text-xs sm:text-sm ${rec.score >= 80 ? 'bg-emerald-100 text-emerald-800' : rec.score >= 60 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">
+                            ${rec.score} 分
+                          </span>
+                        </td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                          <button onclick="viewRecordDetail('${rec.id}')" class="px-3 py-1.5 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-bold text-xs sm:text-sm">
+                            🔍 錯題詳情 (${rec.wrongQuestions ? rec.wrongQuestions.length : 0}錯)
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== 8. 老師匯出 CSV 與清除紀錄功能 ====================
+    function exportRecordsToCSV() {
+      const allRecords = getAllRecords();
+      const filteredRecords = allRecords.filter(r => {
+        const matchStu = state.teacherFilterStudent === 'ALL' || r.studentName === state.teacherFilterStudent;
+        const matchUnit = state.teacherFilterUnit === 'ALL' || r.unitId === state.teacherFilterUnit;
+        return matchStu && matchUnit;
+      });
+
+      if (filteredRecords.length === 0) {
+        showToast('目前沒有可匯出的成績紀錄', '⚠️');
+        return;
+      }
+
+      const headers = ['作答日期時間', '學生姓名', '練習單元', '答對題數', '總題數', '得分(滿分100)', '答錯題目編號'];
+      const rows = filteredRecords.map(r => {
+        const wrongNums = (r.wrongQuestions || []).map(w => `第${w.qNumber}題`).join('、') || '全對';
+        return [
+          `"${r.dateStr || formatHKDateTime(r.timestamp)}"`,
+          `"${r.studentName}"`,
+          `"${r.unitTitle}"`,
+          r.correctCount,
+          r.totalQuestions || 10,
+          r.score,
+          `"${wrongNums}"`
+        ].join(',');
+      });
+
+      // 加入 UTF-8 BOM 確保 Excel 開啟繁體中文不亂碼
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateTag = new Date().toISOString().slice(0, 10);
+      link.download = `自相矛盾_學生成績表_${dateTag}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast('已成功匯出 CSV 成績表！', '📥');
+    }
+
+    function promptClearRecords() {
+      const targetName = state.teacherFilterStudent === 'ALL' ? '所有學生' : `「${state.teacherFilterStudent}」`;
+      showCustomConfirm({
+        icon: '🗑️',
+        title: `確定要清除${targetName}的成績紀錄嗎？`,
+        message: '清除後將無法復原這些作答分數與錯題紀錄。',
+        confirmText: '確定清除',
+        cancelText: '保留紀錄',
+        onConfirm: async () => {
+          if (typeof window.clearQuizRecordsInCloud === 'function') {
+            await window.clearQuizRecordsInCloud(state.teacherFilterStudent);
+          }
+          renderApp();
+          showToast(`已清除${targetName}的成績紀錄`, '🗑️');
+        }
+      });
+    }
+
+    function viewRecordDetail(recordId) {
+      const rec = getAllRecords().find(r => r.id === recordId);
+      if (!rec) return;
+
+      document.getElementById('attemptDetailTitle').textContent = `${rec.studentName} • ${rec.unitTitle}（${rec.score} 分）`;
+      const body = document.getElementById('attemptDetailBody');
+
+      const wrongs = rec.wrongQuestions || [];
+      if (wrongs.length === 0) {
+        body.innerHTML = `
+          <div class="text-center py-8 bg-emerald-50 rounded-2xl border border-emerald-200">
+            <div class="text-4xl mb-2">🏆</div>
+            <p class="font-black text-emerald-800 text-lg">本次作答全對（100 分），沒有錯題！</p>
+            <p class="text-sm text-emerald-700 mt-1">作答時間：${rec.dateStr}</p>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `
+          <div class="text-sm font-bold text-slate-600 mb-2">
+            作答時間：${rec.dateStr} ｜ 答對 ${rec.correctCount} / 10 題 ｜ 錯題共 ${wrongs.length} 題：
+          </div>
+          ${wrongs.map(w => `
+            <div class="p-4 rounded-2xl bg-rose-50/60 border border-rose-200 space-y-2">
+              <div class="font-black text-rose-800 text-sm">第 ${w.qNumber} 題（${w.category}）</div>
+              <p class="font-bold text-slate-800">${w.question}</p>
+              <div class="text-sm font-bold text-rose-700">❌ 學生作答：${w.userAnswerText}</div>
+              <div class="text-sm font-bold text-emerald-700">✅ 正確答案：${w.correctAnswerText}</div>
+              <div class="text-xs sm:text-sm bg-white p-2.5 rounded-xl border border-sky-200 text-slate-700">
+                <strong class="text-sky-700">💡 解析：</strong>${w.explanation}
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      document.getElementById('attemptDetailModal').classList.remove('hidden');
+    }
+
+    function closeAttemptDetailModal() {
+      document.getElementById('attemptDetailModal').classList.add('hidden');
+    }
+
+    // ==================== 9. 課文及溫習筆記彈窗邏輯 ====================
+    function openStudyModal(defaultTab = 'text') {
+      document.getElementById('studyModal').classList.remove('hidden');
+      switchStudyTab(defaultTab);
+    }
+
+    function closeStudyModal() {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      document.getElementById('studyModal').classList.add('hidden');
+    }
+
+    function switchStudyTab(tabName) {
+      // 更新按鈕樣式
+      ['text', 'vocab', 'grammar', 'weather'].forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (!btn) return;
+        if (t === tabName) {
+          btn.className = 'study-tab-btn px-4 py-2.5 rounded-t-2xl font-black text-sm sm:text-base bg-white text-sky-700 border-t-2 border-x-2 border-sky-200 -mb-px';
+        } else {
+          btn.className = 'study-tab-btn px-4 py-2.5 rounded-t-2xl font-bold text-sm sm:text-base text-slate-600 hover:text-sky-700 hover:bg-white/60';
+        }
+      });
+
+      const body = document.getElementById('studyModalBody');
+      if (tabName === 'text') {
+        const plainStory = STUDY_DATA.storyParagraphs.map(p => p.replace(/<[^>]*>/g, '')).join('');
+        body.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+            <span class="font-black text-amber-900">📜 課題：《自相矛盾》課文全文</span>
+            <button onclick="speakCantonese(\`${escapeForAttr(plainStory)}\`, this)" class="btn-tactile px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm">
+              🔊 粵語朗讀全文
+            </button>
+          </div>
+          <div class="space-y-4 text-base sm:text-lg leading-loose text-slate-800 bg-cream p-5 rounded-2xl border border-amber-200">
+            ${STUDY_DATA.storyParagraphs.map(p => `<p class="indent-8">${p}</p>`).join('')}
+          </div>
+          <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200">
+            <h4 class="font-black text-indigo-900 mb-1">💡 課文主旨與道理：</h4>
+            <p class="text-sm sm:text-base text-indigo-800">小販推銷矛和盾時說的話前後不合理、互相抵觸。成語故事《自相矛盾》帶出：<strong>我們說話或做事不要先後不相應，互相抵觸；言行一致才能得到別人的信任和尊重。</strong></p>
+          </div>
+        `;
+      } else if (tabName === 'vocab') {
+        body.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${STUDY_DATA.vocabList.map(v => `
+              <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200 hover:border-sky-300 transition space-y-2.5 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-lg sm:text-xl font-black text-sky-800">${v.icon} ${v.word}</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onclick="openLocalRadicalAnalyzer('${escapeForAttr(v.word)}')"
+                        class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                      >
+                        🤖 部首分析
+                      </button>
+                      <button onclick="speakCantonese(\`${escapeForAttr(v.word + '。' + v.meaning)}\`, this)" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-sky-100">
+                        🔊 朗讀
+                      </button>
+                    </div>
+                  </div>
+                  ${VOCAB_ILLUSTRATIONS[v.vocabKey] ? `
+                    <div class="w-full h-32 rounded-2xl overflow-hidden border-2 border-white shadow-2xs bg-white">
+                      ${VOCAB_ILLUSTRATIONS[v.vocabKey].svg}
+                    </div>
+                  ` : ''}
+                  <div class="px-2.5 py-1.5 rounded-xl bg-cyan-50 border border-cyan-200 text-xs sm:text-sm font-bold text-cyan-900">
+                    🔎 各字部首：${v.radicals}
+                  </div>
+                  <p class="text-sm font-bold text-slate-700">解釋：${v.meaning}</p>
+                </div>
+                <p class="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100">例句：${v.example}</p>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (tabName === 'grammar') {
+        body.innerHTML = `
+          <div class="space-y-5">
+            <div class="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-200 space-y-3">
+              <h4 class="text-lg sm:text-xl font-black text-emerald-900 flex items-center gap-2">
+                <span>🔪</span>
+                <span>一、部首「刀（刂）」的字形演變</span>
+              </h4>
+              <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                「刀」部的字多跟<strong>利器或利器的用途</strong>有關。
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="bg-white p-4 rounded-xl border border-emerald-200">
+                  <div class="font-black text-emerald-800 mb-1">1. 寫在字的「右邊」時 → 寫成「刂」</div>
+                  <p class="text-sm text-slate-600">例子：<strong>刺</strong>、<strong>別</strong>、<strong>削</strong>（肖 + 刂）、<strong>利</strong>（禾 + 刂）</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-emerald-200">
+                  <div class="font-black text-emerald-800 mb-1">2. 寫在字的「下邊」時 → 保持寫成「刀」</div>
+                  <p class="text-sm text-slate-600">例子：<strong>分</strong>（八 + 刀）、<strong>剪</strong>（前 + 刀）</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-amber-50 border-2 border-amber-200 space-y-3">
+              <h4 class="text-lg sm:text-xl font-black text-amber-900 flex items-center gap-2">
+                <span>🔁</span>
+                <span>二、重疊的動詞（動詞 + 一 + 動詞）</span>
+              </h4>
+              <p class="text-sm sm:text-base text-slate-700 leading-relaxed">
+                課文例子：「就是不買也來<strong>看一看</strong>。」<br/>
+                在重疊動詞之間加「一」，表示<strong>做動作的時間比較短暫，而且有嘗試一下的意思</strong>。
+              </p>
+              <div class="bg-white p-4 rounded-xl border border-amber-200 text-sm text-slate-700 space-y-1.5">
+                <div>• 哥哥的手<strong>碰一碰</strong>水杯，便把水杯打翻了。</div>
+                <div>• 用乾毛巾<strong>抹一抹</strong>桌子，再用清水<strong>洗一洗</strong>毛巾。</div>
+                <div>• 進入別人房間前，應先<strong>敲一敲</strong>門。</div>
+                <div>• 疲累時<strong>做一做</strong>體操；美味的蛋糕也來<strong>嚐一嚐</strong>；用舊報紙<strong>擦一擦</strong>玻璃窗。</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (tabName === 'weather') {
+        body.innerHTML = `
+          <div class="space-y-4">
+            <div class="bg-sky-50 p-4 rounded-2xl border border-sky-200 text-sm sm:text-base text-sky-950">
+              <strong>🌤️ 實用閱讀重點：</strong>天氣預報資料一般包括四項主要內容：
+              <span class="font-bold text-sky-700">① 氣溫（最低 | 最高 °C）</span>、
+              <span class="font-bold text-sky-700">② 濕度（%）</span>、
+              <span class="font-bold text-sky-700">③ 風向和風力</span>、
+              <span class="font-bold text-sky-700">④ 天氣概況</span>。
+            </div>
+            ${renderWeatherChartHTML(false)}
+          </div>
+        `;
+      }
+    }
+
+    // ==================== 10. 啟動應用程式 ====================
+    window.onload = function() {
+      renderApp();
+    };
+  </script>
+</body>
+</html>
